@@ -1,0 +1,77 @@
+name: Tests
+
+on:
+  workflow_call:
+    inputs:
+      python-versions:
+        description: 'JSON array of Python versions to test against, e.g. ["3.11","3.12"]'
+        type: string
+        default: '["3.12", "3.13"]'
+      django-versions:
+        description: 'JSON array of Django versions to test against, e.g. ["4.2","5.2"]'
+        type: string
+        default: '["5.2"]'
+      poetry-install-args:
+        description: 'Extra args passed to poetry install, e.g. --with test'
+        type: string
+        default: '--with test'
+      coverage-package:
+        description: 'Package directory to measure coverage for, e.g. mvp or dac'
+        type: string
+        required: true
+      install-playwright:
+        description: 'Whether to install Playwright browsers before running tests'
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: Test Python ${{ matrix.python-version }}, Django ${{ matrix.django-version }}
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        python-version: ${{ fromJson(inputs.python-versions) }}
+        django-version: ${{ fromJson(inputs.django-versions) }}
+      fail-fast: false
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v6
+
+      - name: Set up Poetry env
+        uses: SamuelJennings/cached-poetry-action@v2.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          poetry-install-args: ${{ inputs.poetry-install-args }}
+
+      - name: Pin Django version
+        run: poetry run pip install "django~=${{ matrix.django-version }}"
+
+      - name: Install Playwright browsers
+        if: inputs.install-playwright
+        run: poetry run playwright install --with-deps chromium
+
+      - name: Run tests
+        env:
+          IS_COVERAGE_RUN: ${{ strategy.job-index == strategy.job-total - 1 }}
+        run: |
+          if [ "$IS_COVERAGE_RUN" = "true" ]; then
+            poetry run pytest --cov=${{ inputs.coverage-package }} --cov-report=xml
+          else
+            poetry run pytest
+          fi
+
+      - name: Upload coverage to Codecov
+        if: strategy.job-index == strategy.job-total - 1
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
