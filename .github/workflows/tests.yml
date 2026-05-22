@@ -19,6 +19,14 @@ on:
         description: 'Package directory to measure coverage for, e.g. mvp or dac'
         type: string
         required: true
+      coverage-python-version:
+        description: 'Python version to use for the coverage run, e.g. "3.13"'
+        type: string
+        default: '3.13'
+      coverage-django-version:
+        description: 'Django version to use for the coverage run, e.g. "5.2"'
+        type: string
+        default: '5.2'
       install-playwright:
         description: 'Whether to install Playwright browsers before running tests'
         type: boolean
@@ -58,7 +66,7 @@ jobs:
 
       - name: Run tests
         env:
-          IS_COVERAGE_RUN: ${{ strategy['job-index'] == strategy['job-total'] - 1 }}
+          IS_COVERAGE_RUN: ${{ matrix.python-version == inputs.coverage-python-version && matrix.django-version == inputs.coverage-django-version }}
         run: |
           if [ "$IS_COVERAGE_RUN" = "true" ]; then
             poetry run pytest --cov=${{ inputs.coverage-package }} --cov-report=xml
@@ -67,7 +75,7 @@ jobs:
           fi
 
       - name: Upload coverage to Codecov
-        if: strategy['job-index'] == strategy['job-total'] - 1
+        if: matrix.python-version == inputs.coverage-python-version && matrix.django-version == inputs.coverage-django-version
         uses: codecov/codecov-action@v5
         with:
           files: ./coverage.xml
