@@ -10,7 +10,7 @@ on:
       django-versions:
         description: 'JSON array of Django versions to test against, e.g. ["4.2","5.2"]'
         type: string
-        default: '["5.2"]'
+        default: '["5.2", "6.0"]'
       poetry-install-args:
         description: 'Extra args passed to poetry install, e.g. --with test'
         type: string
