@@ -58,7 +58,7 @@ jobs:
 
       - name: Run tests
         env:
-          IS_COVERAGE_RUN: ${{ strategy.job-index == strategy.job-total - 1 }}
+          IS_COVERAGE_RUN: ${{ strategy['job-index'] == strategy['job-total'] - 1 }}
         run: |
           if [ "$IS_COVERAGE_RUN" = "true" ]; then
             poetry run pytest --cov=${{ inputs.coverage-package }} --cov-report=xml
@@ -67,7 +67,7 @@ jobs:
           fi
 
       - name: Upload coverage to Codecov
-        if: strategy.job-index == strategy.job-total - 1
+        if: strategy['job-index'] == strategy['job-total'] - 1
         uses: codecov/codecov-action@v5
         with:
           files: ./coverage.xml
