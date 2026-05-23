@@ -1,0 +1,38 @@
+name: Publish to PyPI
+description: >
+  Build and publish a Python package to PyPI using OIDC trusted publishing.
+  Must be called from the top-level workflow (not a reusable workflow) so that
+  the job_workflow_ref in the OIDC token matches the trusted publisher config.
+
+inputs:
+  ref:
+    description: 'Git ref to check out (e.g. github.event.workflow_run.head_sha)'
+    required: true
+  python-version:
+    description: 'Python version to use'
+    default: '3.13'
+  skip-existing:
+    description: 'Skip upload if the package version already exists on PyPI'
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: Check out
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.ref }}
+
+    - name: Set up Poetry env
+      uses: SamuelJennings/cached-poetry-action@v2.0
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Build package
+      run: poetry build
+      shell: bash
+
+    - name: Publish package to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        skip-existing: ${{ inputs.skip-existing }}
