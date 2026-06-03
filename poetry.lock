@@ -111,6 +111,30 @@ astroid = ["astroid (>=2,<5)"]
 test = ["astroid (>=2,<5)", "pytest (<9.0)", "pytest-cov", "pytest-xdist"]
 
 [[package]]
+name = "beautifulsoup4"
+version = "4.14.3"
+description = "Screen-scraping library"
+optional = true
+python-versions = ">=3.7.0"
+groups = ["main"]
+markers = "extra == \"test\""
+files = [
+    {file = "beautifulsoup4-4.14.3-py3-none-any.whl", hash = "sha256:0918bfe44902e6ad8d57732ba310582e98da931428d231a5ecb9e7c703a735bb"},
+    {file = "beautifulsoup4-4.14.3.tar.gz", hash = "sha256:6292b1c5186d356bba669ef9f7f051757099565ad9ada5dd630bd9de5fa7fb86"},
+]
+
+[package.dependencies]
+soupsieve = ">=1.6.1"
+typing-extensions = ">=4.0.0"
+
+[package.extras]
+cchardet = ["cchardet"]
+chardet = ["chardet"]
+charset-normalizer = ["charset-normalizer"]
+html5lib = ["html5lib"]
+lxml = ["lxml"]
+
+[[package]]
 name = "cfgv"
 version = "3.5.0"
 description = "Validate configuration and produce human readable error messages."
@@ -1946,6 +1970,19 @@ files = [
 ]
 
 [[package]]
+name = "soupsieve"
+version = "2.8.4"
+description = "A modern CSS selector implementation for Beautiful Soup."
+optional = true
+python-versions = ">=3.9"
+groups = ["main"]
+markers = "extra == \"test\""
+files = [
+    {file = "soupsieve-2.8.4-py3-none-any.whl", hash = "sha256:e7e6b0769c8f51ed59acab6e994b00621096cfb1c640a7509295987388fbaf65"},
+    {file = "soupsieve-2.8.4.tar.gz", hash = "sha256:e121fd02e975c695e4e9e8774a5ee35d74714b59307868dcc5319ad2d9e3328e"},
+]
+
+[[package]]
 name = "sqlparse"
 version = "0.5.5"
 description = "A non-validating SQL parser."
@@ -2159,7 +2196,7 @@ description = "Backported and Experimental Type Hints for Python 3.9+"
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "extra == \"dev\""
+markers = "extra == \"dev\" or extra == \"test\""
 files = [
     {file = "typing_extensions-4.15.0-py3-none-any.whl", hash = "sha256:f0fa19c6845758ab08074a0cfa8b7aecb71c999ca73d62883bc25cc018c4e548"},
     {file = "typing_extensions-4.15.0.tar.gz", hash = "sha256:0cea48d173cc12fa28ecabc3b837ea3cf6f38c6d1136f85cbaaf598984861466"},
@@ -2456,9 +2493,9 @@ dev = ["pytest", "setuptools"]
 
 [extras]
 dev = ["deptry", "django-browser-reload", "django-debug-toolbar", "django-debug-toolbar-template-profiler", "django-extensions", "django-model-info", "django-stubs", "django-watchfiles", "djangorestframework-stubs", "djlint", "invoke", "ipython", "mypy", "pre-commit", "pylint-celery", "pylint-django", "ruff", "types-python-dateutil", "types-requests"]
-test = ["coverage", "django-coverage-plugin", "factory-boy", "pytest", "pytest-cov", "pytest-django", "pytest-env", "pytest-sugar"]
+test = ["beautifulsoup4", "coverage", "django-coverage-plugin", "factory-boy", "pytest", "pytest-cov", "pytest-django", "pytest-env", "pytest-sugar"]
 
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<4"
-content-hash = "ee498f529dc069bd9185007425f07aa7c75f1bb1248c3ef4aef76290dfd2f32b"
+content-hash = "41850da77613cb11f322205056455dc55e882f62b44856469f106c30ef4eb102"
