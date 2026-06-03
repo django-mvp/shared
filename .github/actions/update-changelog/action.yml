@@ -1,0 +1,35 @@
+name: Update Changelog
+description: Updates CHANGELOG.md with release notes and commits the result to main.
+
+inputs:
+  latest-version:
+    description: "The release tag name (e.g. v1.2.3)"
+    required: true
+  release-notes:
+    description: "The release body / notes"
+    required: true
+  github-token:
+    description: "GitHub token used to check out and commit changes"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Check out
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+        token: ${{ inputs.github-token }}
+
+    - name: Update Changelog
+      uses: stefanzweifel/changelog-updater-action@v1
+      with:
+        latest-version: ${{ inputs.latest-version }}
+        release-notes: ${{ inputs.release-notes }}
+
+    - name: Commit updated CHANGELOG
+      uses: stefanzweifel/git-auto-commit-action@v7
+      with:
+        branch: main
+        commit_message: "docs: update CHANGELOG.md for ${{ inputs.latest-version }} [skip ci]"
+        file_pattern: CHANGELOG.md

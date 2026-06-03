@@ -6,14 +6,14 @@ description: >
 
 inputs:
   ref:
-    description: 'Git ref to check out (e.g. github.event.workflow_run.head_sha)'
+    description: "Git ref to check out (e.g. github.event.workflow_run.head_sha)"
     required: true
   python-version:
-    description: 'Python version to use'
-    default: '3.13'
+    description: "Python version to use"
+    default: "3.13"
   skip-existing:
-    description: 'Skip upload if the package version already exists on PyPI'
-    default: 'false'
+    description: "Skip upload if the package version already exists on PyPI"
+    default: "false"
 
 runs:
   using: composite
@@ -24,7 +24,7 @@ runs:
         ref: ${{ inputs.ref }}
 
     - name: Set up Poetry env
-      uses: SamuelJennings/cached-poetry-action@v2.0
+      uses: django-mvp/shared/.github/actions/setup-poetry@main
       with:
         python-version: ${{ inputs.python-version }}
 

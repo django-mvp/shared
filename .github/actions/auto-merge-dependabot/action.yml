@@ -1,0 +1,29 @@
+name: Auto-merge Dependabot PRs
+description: Automatically merges Dependabot minor and patch version PRs.
+
+inputs:
+  github-token:
+    description: "GitHub token with contents:write and pull-requests:write permissions"
+    required: true
+  pr-url:
+    description: "URL of the pull request to auto-merge"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Fetch Dependabot metadata
+      id: metadata
+      uses: dependabot/fetch-metadata@v2
+      with:
+        github-token: ${{ inputs.github-token }}
+
+    - name: Enable auto-merge for minor and patch updates
+      if: |
+        steps.metadata.outputs.update-type == 'version-update:semver-minor' ||
+        steps.metadata.outputs.update-type == 'version-update:semver-patch'
+      shell: bash
+      run: gh pr merge --auto --squash "$PR_URL"
+      env:
+        PR_URL: ${{ inputs.pr-url }}
+        GH_TOKEN: ${{ inputs.github-token }}

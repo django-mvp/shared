@@ -1,0 +1,82 @@
+name: Dependabot Auto Release
+
+on:
+  pull_request_target:
+    types: [closed]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  tag-and-release:
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.base.ref == 'main'
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Determine next release tag
+        id: next_tag
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          existing_on_head=$(git tag --points-at HEAD | grep -E '^v[0-9]' | head -1 || true)
+          if [ -n "$existing_on_head" ]; then
+            echo "tag=$existing_on_head" >> "$GITHUB_OUTPUT"
+            echo "tag_exists_on_head=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          latest_tag=$(git tag -l 'v*' --sort=-v:refname | head -1 || true)
+          if [ -n "$latest_tag" ]; then
+            base_version="${latest_tag#v}"
+          else
+            base_version="$(grep -E '^version = ' pyproject.toml | head -1 | sed -E 's/version = "([^"]+)"/\1/')"
+          fi
+
+          IFS='.' read -r major minor patch _ <<< "$base_version"
+          if [ -z "${major:-}" ] || [ -z "${minor:-}" ]; then
+            major=0
+            minor=0
+            patch=0
+          fi
+          if [ -z "${patch:-}" ]; then
+            patch=0
+          fi
+
+          patch=$((patch + 1))
+          next_tag="v${major}.${minor}.${patch}"
+
+          while git rev-parse "$next_tag" >/dev/null 2>&1; do
+            patch=$((patch + 1))
+            next_tag="v${major}.${minor}.${patch}"
+          done
+
+          echo "tag=$next_tag" >> "$GITHUB_OUTPUT"
+          echo "tag_exists_on_head=false" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        if: ${{ steps.next_tag.outputs.tag_exists_on_head != 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ steps.next_tag.outputs.tag }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "$tag"
+          git push origin "$tag"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.next_tag.outputs.tag }}
+          name: Release ${{ steps.next_tag.outputs.tag }}
+          generate_release_notes: true
