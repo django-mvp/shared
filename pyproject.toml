@@ -19,7 +19,7 @@ test = [
     "pytest-env (>=1.6.0,<2.0.0)",
     "pytest-sugar (>=1.1.1,<2.0.0)",
     "factory-boy (>=3.3.3,<4.0.0)",
-    "beautifulsoup4 (>=4.14.3,<5.0.0)",
+    "beautifulsoup4 (>=4.15.0,<5.0.0)",
 ]
 dev = [
     "deptry (>=0.25.1,<0.26.0)",
@@ -27,9 +27,9 @@ dev = [
     "django-debug-toolbar-template-profiler (>=2.1.0,<3.0.0)",
     "django-extensions (>=4.1,<5.0)",
     "django-stubs (>=6.0.5,<7.0.0)",
-    "djlint (>=1.36.4,<2.0.0)",
+    "djlint (>=1.39.0,<2.0.0)",
     "invoke (>=3.0.3,<4.0.0)",
-    "ipython (>=9.14.0,<10.0.0)",
+    "ipython (>=9.14.1,<10.0.0)",
     "mypy (>=2.1.0,<3.0.0)",
     "pre-commit (>=4.6.0,<5.0.0)",
     "pylint-celery (>=0.3,<0.4)",
@@ -39,7 +39,7 @@ dev = [
     "djangorestframework-stubs (>=3.17.0,<4.0.0)",
     "django-model-info (>=2026.3.1,<2027.0.0)",
     "django-browser-reload (>=1.21.0,<2.0.0)",
-    "ruff (>=0.15.15,<0.16.0)",
+    "ruff (>=0.15.16,<0.16.0)",
     "django-watchfiles (>=1.4.0,<2.0.0)",
 ]
 
