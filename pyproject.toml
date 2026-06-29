@@ -11,7 +11,7 @@ dependencies = []
 
 [project.optional-dependencies]
 test = [
-    "coverage (>=7.14.2,<8.0.0)",
+    "coverage (>=7.14.3,<8.0.0)",
     "django-coverage-plugin (>=3.2.2,<4.0.0)",
     "pytest (>=9.1.1,<10.0.0)",
     "pytest-cov (>=7.1.0,<8.0.0)",
@@ -26,10 +26,10 @@ dev = [
     "django-debug-toolbar (>=6.3.0,<7.0.0)",
     "django-debug-toolbar-template-profiler (>=2.1.0,<3.0.0)",
     "django-extensions (>=4.1,<5.0)",
-    "django-stubs (>=6.0.5,<7.0.0)",
-    "djlint (>=1.39.2,<2.0.0)",
+    "django-stubs (>=6.0.6,<7.0.0)",
+    "djlint (>=1.39.5,<2.0.0)",
     "invoke (>=3.0.3,<4.0.0)",
-    "ipython (>=9.14.1,<10.0.0)",
+    "ipython (>=9.15.0,<10.0.0)",
     "mypy (>=2.1.0,<3.0.0)",
     "pre-commit (>=4.6.0,<5.0.0)",
     "pylint-celery (>=0.3,<0.4)",
@@ -39,7 +39,7 @@ dev = [
     "djangorestframework-stubs (>=3.17.0,<4.0.0)",
     "django-model-info (>=2026.3.1,<2027.0.0)",
     "django-browser-reload (>=1.21.0,<2.0.0)",
-    "ruff (>=0.15.18,<0.16.0)",
+    "ruff (>=0.15.20,<0.16.0)",
     "django-watchfiles (>=1.4.0,<2.0.0)",
 ]
 
