@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Check out
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
@@ -33,7 +33,7 @@ jobs:
           python-version: ${{ inputs.python-version }}
 
       - name: Load cached pre-commit
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.cache/pre-commit
           key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
@@ -50,7 +50,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Check out
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Poetry env
         uses: django-mvp/shared/.github/actions/setup-poetry@main
@@ -88,7 +88,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Check out
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Poetry env
         uses: django-mvp/shared/.github/actions/setup-poetry@main
