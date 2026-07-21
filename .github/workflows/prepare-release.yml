@@ -1,0 +1,104 @@
+name: Prepare Release
+
+# Step 1 of the family release flow: opens the release PR (version bump +
+# CHANGELOG section). Merging that PR is the release decision; the Tag Release
+# workflow then cuts the tag and GitHub Release from the merge commit.
+#
+# Note: a PR opened with the default GITHUB_TOKEN does not trigger pull_request
+# workflows, so required checks will not report on it. Provide a personal
+# access token as the `release-token` secret (org secret RELEASE_TOKEN
+# recommended) so the release PR runs CI like any other PR.
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump level (patch | minor | major) or an explicit version like 1.2.3'
+        type: string
+        required: true
+        default: 'patch'
+  workflow_call:
+    inputs:
+      bump:
+        description: 'Version bump level (patch | minor | major) or an explicit version'
+        type: string
+        required: true
+    secrets:
+      release-token:
+        description: 'Token used to push the release branch and open the PR (falls back to GITHUB_TOKEN)'
+        required: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  prepare:
+    name: Open release PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.release-token || github.token }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Bump version
+        id: bump
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          poetry version "$BUMP"
+          VERSION="$(poetry version -s)"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Guard against existing release
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          git fetch --tags --quiet
+          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+            echo "::error::Tag v$VERSION already exists — nothing to prepare."
+            exit 1
+          fi
+          if git ls-remote --exit-code origin "refs/heads/release/v$VERSION" >/dev/null 2>&1; then
+            echo "::error::Branch release/v$VERSION already exists — close or merge the open release PR first."
+            exit 1
+          fi
+
+      - name: Update changelog
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          if [ -f CHANGELOG.md ] && grep -q '^## \[Unreleased\]' CHANGELOG.md; then
+            DATE="$(date +%Y-%m-%d)"
+            sed -i "s/^## \[Unreleased\]/## [Unreleased]\n\n## [v${VERSION}] - ${DATE}/" CHANGELOG.md
+            echo "CHANGELOG.md: opened section for v$VERSION"
+          else
+            echo "No CHANGELOG.md with an Unreleased section — skipping changelog update."
+          fi
+
+      - name: Open release PR
+        env:
+          GH_TOKEN: ${{ secrets.release-token || github.token }}
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "release/v$VERSION"
+          git add pyproject.toml
+          [ -f CHANGELOG.md ] && git add CHANGELOG.md
+          git commit -m "chore: release v$VERSION"
+          git push -u origin "release/v$VERSION"
+          gh pr create \
+            --title "chore: release v$VERSION" \
+            --body "Release PR for v$VERSION. Merging this PR is the release decision: the Tag Release workflow will create the \`v$VERSION\` tag and GitHub Release from the merge commit." \
+            --base "${GITHUB_REF_NAME:-main}"
