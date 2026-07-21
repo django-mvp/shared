@@ -62,6 +62,28 @@ pip install "mvp-shared[dev,test] @ git+https://github.com/django-mvp/shared.git
 2. Bump the tag used by each downstream project.
 3. Re-lock dependencies in each downstream project.
 
+## Release Flow
+
+Protected default branches mean version bumps land by PR and tags are cut afterwards —
+never pushed together to main. Two workflows implement this; a release costs two actions:
+dispatch, then merge.
+
+1. **Prepare Release** (`.github/workflows/prepare-release.yml`, `workflow_dispatch`):
+   choose a bump level (patch / minor / major, or an explicit version). It bumps the
+   version with Poetry, opens a `CHANGELOG.md` section when one exists, and opens a
+   `release/vX.Y.Z` PR. Merging that PR **is** the release decision.
+2. **Tag Release** (`.github/workflows/tag-release.yml`, on push to main): notices the
+   project version has no matching tag and creates the `vX.Y.Z` tag plus the GitHub
+   Release from the merge commit. Dependency-only pyproject changes no-op (tag exists).
+
+Both are also `workflow_call`-reusable so downstream repositories can adopt the same flow
+with thin callers.
+
+Token note: with the default `GITHUB_TOKEN`, the release PR does not trigger CI (GitHub
+suppresses workflow-on-workflow events) and the created release does not fire
+`release`-event workflows. Set a personal access token as the `RELEASE_TOKEN` org secret
+and pass it as `release-token` to lift both limits.
+
 ## Pre-commit Template
 
 `templates/pre-commit-config.yaml` is the family-standard hook set: ruff (lint + format),

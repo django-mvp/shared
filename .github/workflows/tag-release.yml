@@ -1,0 +1,62 @@
+name: Tag Release
+
+# Step 2 of the family release flow: after a release PR merges, notice that the
+# project version has no matching tag and cut the tag + GitHub Release from the
+# merge commit. No-ops when the tag already exists (e.g. dependency-only
+# changes to pyproject.toml).
+#
+# Note: a release created with the default GITHUB_TOKEN does not trigger
+# `release`-event workflows. Pass a personal access token as `release-token`
+# if downstream automation must react to the release event.
+
+on:
+  push:
+    branches: [main]
+    paths: [pyproject.toml]
+  workflow_call:
+    secrets:
+      release-token:
+        description: 'Token used to create the tag and release (falls back to GITHUB_TOKEN)'
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    name: Tag and create release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Read project version
+        id: version
+        run: |
+          VERSION="$(python3 - <<'EOF'
+          import tomllib
+          with open("pyproject.toml", "rb") as f:
+              data = tomllib.load(f)
+          version = data.get("project", {}).get("version") or data["tool"]["poetry"]["version"]
+          print(version)
+          EOF
+          )"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create tag and release if missing
+        env:
+          GH_TOKEN: ${{ secrets.release-token || github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+            echo "Tag v$VERSION already exists — nothing to release."
+            exit 0
+          fi
+          gh release create "v$VERSION" \
+            --target "$GITHUB_SHA" \
+            --title "v$VERSION" \
+            --generate-notes
+          echo "Created tag and release v$VERSION at $GITHUB_SHA"
