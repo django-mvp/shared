@@ -7,6 +7,22 @@ This repository provides:
 - A single shared package for dev and test dependency bundles.
 - Reusable CI workflows for build, test matrix, docs deploy, and release.
 - Composite actions used by those workflows.
+- A family-standard pre-commit template downstream repositories copy.
+
+## Scope & philosophy
+
+This repository is the single source of the development standard for the django-mvp
+family: how every downstream repository is built, tested, linted, and released, and which
+tool versions it does that with. One tagged release here versions the whole standard.
+
+It deliberately ships no runtime code — the installable package is an empty shell whose
+only job is carrying dependency bundles. It is not a Django app, not a general-purpose
+actions library, and not a place for repo-specific configuration: anything only one
+downstream repository needs belongs in that repository.
+
+When choices collide: reproducibility beats convenience (pin tags, never `main`), one
+family-wide standard beats per-repo flexibility, and automation is only as trusted as the
+validation gating it.
 
 ## Use In Downstream Projects
 
@@ -45,6 +61,15 @@ pip install "mvp-shared[dev,test] @ git+https://github.com/django-mvp/shared.git
 1. Update and release this shared repo.
 2. Bump the tag used by each downstream project.
 3. Re-lock dependencies in each downstream project.
+
+## Pre-commit Template
+
+`templates/pre-commit-config.yaml` is the family-standard hook set: ruff (lint + format),
+mypy, and deptry running as local hooks inside the Poetry environment, with versions
+supplied by the `dev` bundle. Copy it to the repository root as
+`.pre-commit-config.yaml`, replace the package-directory placeholder, and enable ruff's
+`UP` rules in `[tool.ruff.lint]` (they replace pyupgrade; `ruff format` replaces black).
+The template's comments explain the serialised mypy hook and what runs where in CI.
 
 ## Reusable Workflows
 
