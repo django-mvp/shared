@@ -30,7 +30,7 @@ jobs:
           else
             echo "Release tag detected: $TAG"
           fi
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
   create-release:
     name: Create GitHub Release
