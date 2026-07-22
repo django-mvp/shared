@@ -3,7 +3,10 @@ name: Tag Release
 # Step 2 of the family release flow: after a release PR merges, notice that the
 # project version has no matching tag and cut the tag + GitHub Release from the
 # merge commit. No-ops when the tag already exists (e.g. dependency-only
-# changes to pyproject.toml).
+# changes to pyproject.toml) or when the version has no CHANGELOG section — so
+# only versions that prepare-release actually prepared get tagged, and the
+# initial scaffold commit (pyproject.toml at the seed version, CHANGELOG still
+# only [Unreleased]) does not cut a premature release.
 #
 # Note: a release created with the default GITHUB_TOKEN does not trigger
 # `release`-event workflows. Pass a personal access token as `release-token`
@@ -54,6 +57,16 @@ jobs:
           if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
             echo "Tag v$VERSION already exists — nothing to release."
             exit 0
+          fi
+          # Tag only versions that prepare-release prepared: require a matching
+          # CHANGELOG section (## [vX.Y.Z] or ## [X.Y.Z]). Repos without a
+          # CHANGELOG.md keep the previous tag-on-version-bump behaviour.
+          if [ -f CHANGELOG.md ]; then
+            if ! grep -qF "## [v$VERSION]" CHANGELOG.md \
+               && ! grep -qF "## [$VERSION]" CHANGELOG.md; then
+              echo "No CHANGELOG section for v$VERSION — not a prepared release; skipping."
+              exit 0
+            fi
           fi
           gh release create "v$VERSION" \
             --target "$GITHUB_SHA" \
