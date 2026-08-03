@@ -89,3 +89,7 @@ Read at plan and review; applies to every change.
 - Machine verification gates every stage exit; no LLM judgment can override a red gate.
 - Dependabot auto-merge is permitted only while the ruleset's required checks include the
   validation gate (ADR 0003).
+
+---
+
+**Version**: 1.0.0 | **Ratified**: 2026-07-21 | **Last Amended**: 2026-07-21
