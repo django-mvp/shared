@@ -28,9 +28,10 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Set up Poetry env
-        uses: django-mvp/shared/.github/actions/setup-poetry@main
+        uses: django-mvp/shared/.github/actions/setup-poetry@v0.2.0
         with:
           python-version: ${{ inputs.python-version }}
+          cache-key-suffix: code-quality
 
       - name: Load cached pre-commit
         uses: actions/cache@v5
@@ -53,14 +54,26 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Set up Poetry env
-        uses: django-mvp/shared/.github/actions/setup-poetry@main
+        uses: django-mvp/shared/.github/actions/setup-poetry@v0.2.0
         with:
           python-version: ${{ inputs.python-version }}
+          cache-key-suffix: security
 
       - name: Run bandit security linter
+        # This is a report, not a gate (ADR 0007): findings never fail the
+        # build at v0.x, but a scanner that produces no report must — a broken
+        # scanner silently looking like a clean scan is exactly how this job
+        # went unnoticed (django-mvp/shared#23). The `|| true` swallows only
+        # bandit's own "issues found" exit code; the emitted artefact is
+        # asserted on next, never a piped exit code.
         run: |
-          pip install bandit[toml]
+          pip install "bandit[toml]"
           bandit -r ${{ inputs.source-dir }}/ -f json -o bandit-report.json || true
+
+      - name: Verify bandit report was produced
+        run: |
+          test -s bandit-report.json
+          python3 -c "import json; json.load(open('bandit-report.json'))"
 
       - name: Upload bandit report
         uses: actions/upload-artifact@v7
@@ -69,17 +82,28 @@ jobs:
           name: bandit-report
           path: bandit-report.json
 
-      - name: Run safety check for known vulnerabilities
+      - name: Run pip-audit for known vulnerabilities
+        # pip-audit replaces safety (django-mvp/shared#23): safety 3.x needs an
+        # authenticated account against its vulnerability database, which is
+        # the wrong shape for unattended CI. pip-audit needs none. It runs via
+        # `poetry run` so it audits the packages this job actually installed,
+        # not the runner's bare system interpreter; --local excludes anything
+        # outside that venv from the report.
         run: |
-          pip install safety
-          safety check --json --output safety-report.json || true
+          poetry run pip install pip-audit
+          poetry run pip-audit --local --format json --output pip-audit-report.json --progress-spinner off || true
 
-      - name: Upload safety report
+      - name: Verify pip-audit report was produced
+        run: |
+          test -s pip-audit-report.json
+          python3 -c "import json; json.load(open('pip-audit-report.json'))"
+
+      - name: Upload pip-audit report
         uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: safety-report
-          path: safety-report.json
+          name: pip-audit-report
+          path: pip-audit-report.json
 
   package:
     name: Build Package
@@ -91,9 +115,10 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Set up Poetry env
-        uses: django-mvp/shared/.github/actions/setup-poetry@main
+        uses: django-mvp/shared/.github/actions/setup-poetry@v0.2.0
         with:
           python-version: ${{ inputs.python-version }}
+          cache-key-suffix: package
 
       - name: Build package
         run: poetry build

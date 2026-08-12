@@ -74,6 +74,23 @@ jobs:
             exit 1
           fi
 
+      - name: Re-pin the internal setup-poetry reference to this release
+        # build.yml and tests.yml call setup-poetry by owner/repo/path@ref rather
+        # than a local path, because a reusable workflow's `uses: ./...` resolves
+        # against the CALLING repo's checkout, not this one. That reference must
+        # track this repo's own release tag or a downstream caller pinned to a
+        # tag still transitively floats on @main (django-mvp/shared#24). The tag
+        # this bump produces does not exist yet, but it will point at this exact
+        # commit once Tag Release runs — the self-reference is only ever read by
+        # a caller that has already resolved this tag, by which time it exists.
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          sed -i -E \
+            "s#(django-mvp/shared/\.github/actions/setup-poetry)@[^[:space:]]+#\1@v${VERSION}#" \
+            .github/workflows/build.yml .github/workflows/tests.yml
+          git diff --stat .github/workflows/build.yml .github/workflows/tests.yml
+
       - name: Update changelog
         env:
           VERSION: ${{ steps.bump.outputs.version }}
@@ -94,7 +111,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "release/v$VERSION"
-          git add pyproject.toml
+          git add pyproject.toml .github/workflows/build.yml .github/workflows/tests.yml
           [ -f CHANGELOG.md ] && git add CHANGELOG.md
           git commit -m "chore: release v$VERSION"
           git push -u origin "release/v$VERSION"
