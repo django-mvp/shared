@@ -8,6 +8,7 @@ This repository provides:
 - Reusable CI workflows for build, test matrix, docs deploy, and release.
 - Composite actions used by those workflows.
 - A family-standard pre-commit template downstream repositories copy.
+- A family-standard base ruff configuration downstream repositories copy and extend.
 
 ## Scope & philosophy
 
@@ -92,6 +93,34 @@ supplied by the `dev` bundle. Copy it to the repository root as
 `.pre-commit-config.yaml`, replace the package-directory placeholder, and enable ruff's
 `UP` rules in `[tool.ruff.lint]` (they replace pyupgrade; `ruff format` replaces black).
 The template's comments explain the serialised mypy hook and what runs where in CI.
+
+## Shared Ruff Configuration
+
+`templates/ruff-shared.toml` is the family-standard base ruff configuration: the shared
+rule selection, the shared ignore list, and the shared format settings. Ruff's `extend`
+option only accepts a local filesystem path, so a package cannot point at this file across
+repositories directly — copy it to the repository root as `ruff-shared.toml` (re-copy on
+each family-standard bump, the same discipline as the pre-commit template above), then
+reference it from the package's own `pyproject.toml`:
+
+```toml
+[tool.ruff]
+extend = "ruff-shared.toml"
+
+[tool.ruff.lint]
+extend-ignore = []  # package-specific additions, if any
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]  # asserts are the point of a test
+```
+
+Once extending, a package's own `[tool.ruff]` holds only its remainder: additional ignored
+rules under `[tool.ruff.lint] extend-ignore`, additional excluded paths under
+`extend-exclude`, per-file carve-outs for tests and examples, and any
+`[tool.ruff.format]` keys that differ from the shared ones — never a restatement of the
+shared rule set. `line-length` and `target-version` stay unset in both files: line length
+defaults to 88 (matching Black), and target-version is inferred from the package's own
+`requires-python`, so leaving both alone is what keeps them from drifting.
 
 ## Reusable Workflows
 
