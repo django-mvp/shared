@@ -29,6 +29,7 @@ runs:
   using: "composite"
   steps:
     - name: Set up Python
+      id: setup-python
       uses: actions/setup-python@v5
       with:
         python-version: ${{ inputs.python-version }}
@@ -41,19 +42,31 @@ runs:
         virtualenvs-in-project: true
         installer-parallel: true
 
+    # The key carries the *resolved* interpreter (3.13.15), not the requested
+    # series (3.13). A Poetry in-project venv records an absolute interpreter
+    # path in .venv/pyvenv.cfg, so a venv saved on one patch release is dead on
+    # a runner image carrying the next one. Keying on the series meant the
+    # hosted tool cache rolling a patch silently poisoned every entry
+    # (ADR 0008).
     - name: Load cached venv
       id: cached-poetry-dependencies
       uses: actions/cache@v5
       with:
         path: .venv
-        key: venv-${{ runner.os }}-${{ inputs.python-version }}-${{ inputs.poetry-version }}-${{ inputs.poetry-install-args }}-${{ inputs.cache-key-suffix }}-${{ hashFiles('**/poetry.lock') }}
+        key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ inputs.poetry-version }}-${{ inputs.poetry-install-args }}-${{ inputs.cache-key-suffix }}-${{ hashFiles('**/poetry.lock') }}
         restore-keys: |
-          venv-${{ runner.os }}-${{ inputs.python-version }}-${{ inputs.poetry-version }}-${{ inputs.poetry-install-args }}-${{ inputs.cache-key-suffix }}-
-          venv-${{ runner.os }}-${{ inputs.python-version }}-${{ inputs.poetry-version }}-${{ inputs.poetry-install-args }}-
-          venv-${{ runner.os }}-${{ inputs.python-version }}-${{ inputs.poetry-version }}-
+          venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ inputs.poetry-version }}-${{ inputs.poetry-install-args }}-${{ inputs.cache-key-suffix }}-
+          venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ inputs.poetry-version }}-${{ inputs.poetry-install-args }}-
+          venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ inputs.poetry-version }}-
 
+    # Unconditional, and it has to stay that way. Poetry discards a venv it
+    # considers broken and builds an empty one in its place, which is what a
+    # restore across a dead interpreter path produces. That happens during the
+    # step below, after any cache-hit condition here has already been decided,
+    # so gating this step on a cache miss leaves nothing to refill the venv and
+    # the job dies at the first `poetry run`. Against a healthy restored venv
+    # this resolves to no operations.
     - name: Install dependencies
-      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       shell: bash
       run: poetry install --no-interaction --no-root ${{ inputs.poetry-install-args }}
 
