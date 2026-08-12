@@ -43,7 +43,7 @@ dev = [
 
 
 [tool.poetry]
-version = "0.2.0"
+version = "0.3.0"
 include = ["LICENSE", "README.md"]
 requires-poetry = '>=2.0,<3.0'
 packages = [{ include = "mvp_shared" }]
