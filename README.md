@@ -80,10 +80,23 @@ dispatch, then merge.
 Both are also `workflow_call`-reusable so downstream repositories can adopt the same flow
 with thin callers.
 
-Token note: with the default `GITHUB_TOKEN`, the release PR does not trigger CI (GitHub
-suppresses workflow-on-workflow events) and the created release does not fire
-`release`-event workflows. Set a personal access token as the `RELEASE_TOKEN` org secret
-and pass it as `release-token` to lift both limits.
+Token note: these workflows need a personal access token, held as the `RELEASE_TOKEN` org
+secret. Prepare Release cannot run without one, because it rewrites files under
+`.github/workflows` and GitHub refuses those pushes from `GITHUB_TOKEN`. Two further
+limits lift with it: the release PR triggers CI, which it does not when opened by
+`GITHUB_TOKEN`, and the created release fires `release`-event workflows.
+
+Downstream callers pass it explicitly, because a reusable workflow sees only the secrets
+its caller maps in:
+
+```yaml
+    secrets:
+      RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+```
+
+`release-token` was the earlier name for the same secret. It is still honoured so a
+repository can repin and rename in separate changes, but it is deprecated, warns when
+used, and will be removed.
 
 ## Pre-commit Template
 
