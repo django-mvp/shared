@@ -14,6 +14,16 @@ inputs:
     description: "Additional arguments for poetry install (e.g. --with dev --with test)"
     default: ""
     required: false
+  cache-key-suffix:
+    description: >-
+      Extra string to disambiguate the venv cache key from any other job or matrix
+      leg in the same workflow run that resolves to the same
+      (python-version, poetry-version, poetry-install-args) tuple — e.g. the job id
+      or a matrix value. Concurrent call sites that omit this and share that tuple
+      race to save the same cache entry (django-mvp/shared#22); required whenever
+      more than one such call site exists in the same workflow.
+    default: ""
+    required: false
 
 runs:
   using: "composite"
@@ -36,8 +46,9 @@ runs:
       uses: actions/cache@v5
       with:
         path: .venv
-        key: venv-${{ runner.os }}-${{ inputs.python-version }}-${{ inputs.poetry-version }}-${{ inputs.poetry-install-args }}-${{ hashFiles('**/poetry.lock') }}
+        key: venv-${{ runner.os }}-${{ inputs.python-version }}-${{ inputs.poetry-version }}-${{ inputs.poetry-install-args }}-${{ inputs.cache-key-suffix }}-${{ hashFiles('**/poetry.lock') }}
         restore-keys: |
+          venv-${{ runner.os }}-${{ inputs.python-version }}-${{ inputs.poetry-version }}-${{ inputs.poetry-install-args }}-${{ inputs.cache-key-suffix }}-
           venv-${{ runner.os }}-${{ inputs.python-version }}-${{ inputs.poetry-version }}-${{ inputs.poetry-install-args }}-
           venv-${{ runner.os }}-${{ inputs.python-version }}-${{ inputs.poetry-version }}-
 
