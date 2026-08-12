@@ -9,8 +9,13 @@ name: Tag Release
 # only [Unreleased]) does not cut a premature release.
 #
 # Note: a release created with the default GITHUB_TOKEN does not trigger
-# `release`-event workflows. Pass a personal access token as `release-token`
-# if downstream automation must react to the release event.
+# `release`-event workflows. Pass a personal access token as RELEASE_TOKEN if
+# downstream automation must react to the release event. Unlike prepare-release
+# this workflow does still function without one — it creates the tag under
+# GITHUB_TOKEN, and only the release event is lost.
+#
+# `release-token` is the former name for the same thing and is still accepted.
+# It is deprecated and will be removed once every caller has moved across.
 
 on:
   push:
@@ -18,8 +23,11 @@ on:
     paths: [pyproject.toml]
   workflow_call:
     secrets:
+      RELEASE_TOKEN:
+        description: 'Token used to create the tag and release. Falls back to GITHUB_TOKEN, which cuts the tag but fires no release event.'
+        required: false
       release-token:
-        description: 'Token used to create the tag and release (falls back to GITHUB_TOKEN)'
+        description: 'Deprecated former name for RELEASE_TOKEN. Still honoured so callers can repin without renaming in the same change. Will be removed.'
         required: false
 
 permissions:
@@ -51,7 +59,7 @@ jobs:
 
       - name: Create tag and release if missing
         env:
-          GH_TOKEN: ${{ secrets.release-token || github.token }}
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.release-token || github.token }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then

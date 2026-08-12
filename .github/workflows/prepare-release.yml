@@ -4,10 +4,22 @@ name: Prepare Release
 # CHANGELOG section). Merging that PR is the release decision; the Tag Release
 # workflow then cuts the tag and GitHub Release from the merge commit.
 #
-# Note: a PR opened with the default GITHUB_TOKEN does not trigger pull_request
-# workflows, so required checks will not report on it. Provide a personal
-# access token as the `release-token` secret (org secret RELEASE_TOKEN
-# recommended) so the release PR runs CI like any other PR.
+# The token is not optional. Two things depend on it:
+#   - The re-pin step rewrites files under .github/workflows, and GitHub refuses
+#     those pushes from GITHUB_TOKEN whatever its `permissions:` block says —
+#     `workflows` is not a scope that block can grant.
+#   - A PR opened with GITHUB_TOKEN triggers no pull_request workflows, so
+#     required checks never report on the release PR.
+#
+# Dispatched here, RELEASE_TOKEN comes from the org secret of that name. Called
+# from another repository it cannot, because a reusable workflow sees only what
+# its caller maps in, so callers pass it explicitly:
+#
+#     secrets:
+#       RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+#
+# `release-token` is the former name for the same thing and is still accepted.
+# It is deprecated and will be removed once every caller has moved across.
 
 on:
   workflow_dispatch:
@@ -24,8 +36,11 @@ on:
         type: string
         required: true
     secrets:
+      RELEASE_TOKEN:
+        description: 'Token used to push the release branch and open the PR. Callers must pass it; dispatched here it resolves from the org secret of the same name.'
+        required: false
       release-token:
-        description: 'Token used to push the release branch and open the PR (falls back to GITHUB_TOKEN)'
+        description: 'Deprecated former name for RELEASE_TOKEN. Still honoured so callers can repin without renaming in the same change. Will be removed.'
         required: false
 
 permissions:
@@ -38,10 +53,32 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Resolve the release token
+        # Without this the run reaches the push 90 seconds later and fails on a
+        # permission error that reads like a misconfigured token rather than an
+        # absent one. Never let a missing credential fall through in silence.
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          LEGACY_TOKEN: ${{ secrets.release-token }}
+        run: |
+          if [ -n "${RELEASE_TOKEN:-}" ]; then
+            exit 0
+          fi
+          if [ -n "${LEGACY_TOKEN:-}" ]; then
+            echo "::warning::The release-token secret is deprecated. Pass it as"
+            echo "::warning::RELEASE_TOKEN instead; release-token will be removed."
+            exit 0
+          fi
+          echo "::error::No release token resolved. This workflow rewrites files"
+          echo "::error::under .github/workflows, which GITHUB_TOKEN may never push."
+          echo "::error::Set the RELEASE_TOKEN org secret, or pass it as RELEASE_TOKEN"
+          echo "::error::when calling this workflow from another repository."
+          exit 1
+
       - name: Check out
         uses: actions/checkout@v7
         with:
-          token: ${{ secrets.release-token || github.token }}
+          token: ${{ secrets.RELEASE_TOKEN || secrets.release-token }}
 
       - name: Set up Python
         uses: actions/setup-python@v7
@@ -105,7 +142,7 @@ jobs:
 
       - name: Open release PR
         env:
-          GH_TOKEN: ${{ secrets.release-token || github.token }}
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.release-token }}
           VERSION: ${{ steps.bump.outputs.version }}
         run: |
           git config user.name "github-actions[bot]"
