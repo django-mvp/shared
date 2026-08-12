@@ -38,3 +38,13 @@ jobs:
         run: |
           bash <(curl -sSf https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
           ./actionlint -color
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Check venv cache key uniqueness
+        run: |
+          pip install pyyaml
+          python scripts/check_cache_key_uniqueness.py
