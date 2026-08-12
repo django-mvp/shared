@@ -111,22 +111,55 @@ jobs:
             exit 1
           fi
 
-      - name: Re-pin the internal setup-poetry reference to this release
-        # build.yml and tests.yml call setup-poetry by owner/repo/path@ref rather
-        # than a local path, because a reusable workflow's `uses: ./...` resolves
-        # against the CALLING repo's checkout, not this one. That reference must
+      - name: Re-pin the internal setup-poetry references to this release
+        # These files call setup-poetry by owner/repo/path@ref rather than a
+        # local path, because `uses: ./...` inside a reusable workflow resolves
+        # against the CALLING repo's checkout, not this one. The references must
         # track this repo's own release tag or a downstream caller pinned to a
         # tag still transitively floats on @main (django-mvp/shared#24). The tag
         # this bump produces does not exist yet, but it will point at this exact
         # commit once Tag Release runs — the self-reference is only ever read by
         # a caller that has already resolved this tag, by which time it exists.
+        #
+        # Find the files rather than listing them. The hand-written list missed
+        # docs.yml and publish-pypi/action.yml, which floated on @main across
+        # three releases while the two named files were pinned correctly.
+        #
+        # This file is excluded because it quotes the reference as a search
+        # pattern. Without that, the step rewrites its own patterns and the
+        # check below reports its own source as unpinned.
         env:
           VERSION: ${{ steps.bump.outputs.version }}
         run: |
-          sed -i -E \
-            "s#(django-mvp/shared/\.github/actions/setup-poetry)@[^[:space:]]+#\1@v${VERSION}#" \
-            .github/workflows/build.yml .github/workflows/tests.yml
-          git diff --stat .github/workflows/build.yml .github/workflows/tests.yml
+          set -euo pipefail
+          PATTERN='django-mvp/shared/\.github/actions/setup-poetry'
+          mapfile -t FILES < <(grep -rlE "${PATTERN}@" .github/ --exclude=prepare-release.yml)
+          if [ "${#FILES[@]}" -eq 0 ]; then
+            echo "::error::No setup-poetry references found. The reference format"
+            echo "::error::changed and this step is no longer re-pinning anything."
+            exit 1
+          fi
+          printf 'Re-pinning %s file(s):\n' "${#FILES[@]}"
+          printf '  %s\n' "${FILES[@]}"
+          sed -i -E "s#(${PATTERN})@[^[:space:]]+#\1@v${VERSION}#" "${FILES[@]}"
+
+      - name: Verify no setup-poetry reference was left behind
+        # A missed file is invisible from downstream: the caller looks correctly
+        # pinned. Fail the release rather than ship a half-pinned tag.
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          set -euo pipefail
+          PATTERN='django-mvp/shared/\.github/actions/setup-poetry'
+          STRAY="$(grep -rnE "${PATTERN}@" .github/ --exclude=prepare-release.yml \
+                   | grep -vE "@v${VERSION}\$" || true)"
+          if [ -n "$STRAY" ]; then
+            echo "::error::setup-poetry references not pinned to v${VERSION}:"
+            echo "$STRAY"
+            exit 1
+          fi
+          echo "All setup-poetry references pinned to v${VERSION}."
+          git diff --stat
 
       - name: Update changelog
         env:
@@ -148,7 +181,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "release/v$VERSION"
-          git add pyproject.toml .github/workflows/build.yml .github/workflows/tests.yml
+          git add pyproject.toml .github
           [ -f CHANGELOG.md ] && git add CHANGELOG.md
           git commit -m "chore: release v$VERSION"
           git push -u origin "release/v$VERSION"
