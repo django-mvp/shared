@@ -3,8 +3,12 @@
 Poetry venv cache key.
 
 Every "Set up Poetry env" step resolves to a cache key built from
-(runner.os, python-version, poetry-version, poetry-install-args, cache-key-suffix,
-poetry.lock hash). Two call sites in the same workflow file that resolve to an
+(runner.os, resolved python-version, poetry-version, poetry-install-args,
+cache-key-suffix, poetry.lock hash). Call sites requesting the same series resolve
+to the same patch release within a run, so modelling the requested version here
+answers the uniqueness question exactly; whether the key pins the *resolved*
+interpreter is a separate property, checked by check_venv_cache_safety.py.
+Two call sites in the same workflow file that resolve to an
 identical tuple race to save the same cache entry when they run without a
 `needs` relationship between them (see django-mvp/shared#22): each starts from
 a cache miss, each runs its own `poetry install`, and both then try to save
