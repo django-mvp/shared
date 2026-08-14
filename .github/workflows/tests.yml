@@ -61,6 +61,18 @@ jobs:
       - name: Pin Django version
         run: poetry run pip install "django~=${{ matrix.django-version }}"
 
+      - name: Resolve Playwright version
+        if: inputs.install-playwright
+        id: playwright-version
+        run: echo "version=$(poetry run python -c 'import importlib.metadata; print(importlib.metadata.version(\"playwright\"))')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        if: inputs.install-playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+
       - name: Install Playwright browsers
         if: inputs.install-playwright
         run: poetry run playwright install --with-deps chromium
