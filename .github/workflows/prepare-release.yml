@@ -112,6 +112,13 @@ jobs:
           fi
 
       - name: Re-pin the internal setup-poetry references to this release
+        # Self-reference rewrite: only this repo's own release carries a
+        # setup-poetry@vX action to re-pin. Called from a downstream repo
+        # (github.repository is the CALLER in a reusable workflow), this step
+        # must not run — it would rewrite the caller's OWN pins to the caller's
+        # version number instead of leaving them alone, silently downgrading
+        # them to whatever tag happens to share that number (django-mvp/shared#41).
+        #
         # These files call setup-poetry by owner/repo/path@ref rather than a
         # local path, because `uses: ./...` inside a reusable workflow resolves
         # against the CALLING repo's checkout, not this one. The references must
@@ -128,6 +135,7 @@ jobs:
         # This file is excluded because it quotes the reference as a search
         # pattern. Without that, the step rewrites its own patterns and the
         # check below reports its own source as unpinned.
+        if: github.repository == 'django-mvp/shared'
         env:
           VERSION: ${{ steps.bump.outputs.version }}
         run: |
@@ -146,6 +154,7 @@ jobs:
       - name: Verify no setup-poetry reference was left behind
         # A missed file is invisible from downstream: the caller looks correctly
         # pinned. Fail the release rather than ship a half-pinned tag.
+        if: github.repository == 'django-mvp/shared'
         env:
           VERSION: ${{ steps.bump.outputs.version }}
         run: |
