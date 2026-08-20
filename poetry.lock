@@ -27,7 +27,7 @@ description = "ASGI specs, helper code, and adapters"
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "extra == \"test\" or extra == \"dev\""
+markers = "extra == \"dev\" or extra == \"test\""
 files = [
     {file = "asgiref-3.11.1-py3-none-any.whl", hash = "sha256:e8667a091e69529631969fd45dc268fa79b99c92c5fcdda727757e52146ec133"},
     {file = "asgiref-3.11.1.tar.gz", hash = "sha256:5f184dc43b7e763efe848065441eac62229c9f7b0475f41f80e207a114eda4ce"},
@@ -275,7 +275,7 @@ description = "Cross-platform colored terminal text."
 optional = true
 python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,>=2.7"
 groups = ["main"]
-markers = "sys_platform == \"win32\" and (extra == \"test\" or extra == \"dev\") or extra == \"dev\" and platform_system == \"Windows\""
+markers = "extra == \"dev\" and platform_system == \"Windows\" or sys_platform == \"win32\" and (extra == \"dev\" or extra == \"test\")"
 files = [
     {file = "colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"},
     {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
@@ -488,7 +488,7 @@ description = "A high-level Python web framework that encourages rapid developme
 optional = true
 python-versions = ">=3.12"
 groups = ["main"]
-markers = "extra == \"test\" or extra == \"dev\""
+markers = "extra == \"dev\" or extra == \"test\""
 files = [
     {file = "django-6.0.5-py3-none-any.whl", hash = "sha256:9d58a7cb49244e74c8e161d5e403a46d6209f1009ba40f5a66d6aa0d0786a8f0"},
     {file = "django-6.0.5.tar.gz", hash = "sha256:bc6d6872e98a2864c836e42edd644b362db311147dd5aa8d5b82ba7a032f5269"},
@@ -608,15 +608,15 @@ rich = ">=13"
 
 [[package]]
 name = "django-stubs"
-version = "6.0.9"
+version = "6.1.0"
 description = "Mypy stubs for Django"
 optional = true
-python-versions = ">=3.10"
+python-versions = ">=3.11"
 groups = ["main"]
 markers = "extra == \"dev\""
 files = [
-    {file = "django_stubs-6.0.9-py3-none-any.whl", hash = "sha256:dbee54721197b453708b39bb6b5988b6543eddf3e5073b8772c13bf4652af17d"},
-    {file = "django_stubs-6.0.9.tar.gz", hash = "sha256:ef9928e900a9d226162b579b50c035d08755f6279fd47de9f427de4123c23623"},
+    {file = "django_stubs-6.1.0-py3-none-any.whl", hash = "sha256:63b23ccca2616d464ed7e37d1ce44960315cb3cecab75b23c928467ef125e560"},
+    {file = "django_stubs-6.1.0.tar.gz", hash = "sha256:b6aecc5c738a103135f76ba160a6f75e3b27dcf0200c64d7226018cdbc2340dd"},
 ]
 
 [package.dependencies]
@@ -666,19 +666,19 @@ watchfiles = "*"
 
 [[package]]
 name = "djangorestframework-stubs"
-version = "3.17.1"
+version = "3.18.0"
 description = "PEP-484 stubs for django-rest-framework"
 optional = true
 python-versions = ">=3.10"
 groups = ["main"]
 markers = "extra == \"dev\""
 files = [
-    {file = "djangorestframework_stubs-3.17.1-py3-none-any.whl", hash = "sha256:40f1f22ec1965d1caff17c66794b87799eb8f42e0628ea46b501dcd565d8a803"},
-    {file = "djangorestframework_stubs-3.17.1.tar.gz", hash = "sha256:5b67655090e2976b778bad572840b732a87ab2911402530d0dca2fbf72f891c5"},
+    {file = "djangorestframework_stubs-3.18.0-py3-none-any.whl", hash = "sha256:dd04de8100689851e13843eebdc03a84d336f34aab6d30c726bca0f2f11aaf6b"},
+    {file = "djangorestframework_stubs-3.18.0.tar.gz", hash = "sha256:072adaf1a6f507e2ccca2e4ba5611a2259d6c9d171eb6256c103acecdd33a40d"},
 ]
 
 [package.dependencies]
-django-stubs = ">=6.0.7"
+django-stubs = ">=6.0.9"
 types-pyyaml = "*"
 typing-extensions = ">=4.0"
 
@@ -984,7 +984,7 @@ description = "Internationalized Domain Names in Applications (IDNA)"
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "extra == \"test\" or extra == \"dev\""
+markers = "extra == \"dev\" or extra == \"test\""
 files = [
     {file = "idna-3.18-py3-none-any.whl", hash = "sha256:7f952cbe720b688055e3f87de14f5c3e5fdaa8bc3928985c4077ca689de849a2"},
     {file = "idna-3.18.tar.gz", hash = "sha256:ffb385a7e039654cef1ab9ef32c6fafe283c0c0467bba1d9029738ce4a14a848"},
@@ -1432,7 +1432,7 @@ description = "Core utilities for Python packages"
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"test\" or extra == \"dev\""
+markers = "extra == \"dev\" or extra == \"test\""
 files = [
     {file = "packaging-26.2-py3-none-any.whl", hash = "sha256:5fc45236b9446107ff2415ce77c807cee2862cb6fac22b8a73826d0693b0980e"},
     {file = "packaging-26.2.tar.gz", hash = "sha256:ff452ff5a3e828ce110190feff1178bb1f2ea2281fa2075aadb987c2fb221661"},
@@ -1544,15 +1544,15 @@ testing = ["coverage", "pytest", "pytest-benchmark"]
 
 [[package]]
 name = "pre-commit"
-version = "4.6.1"
+version = "4.6.2"
 description = "A framework for managing and maintaining multi-language pre-commit hooks."
 optional = true
 python-versions = ">=3.10"
 groups = ["main"]
 markers = "extra == \"dev\""
 files = [
-    {file = "pre_commit-4.6.1-py2.py3-none-any.whl", hash = "sha256:0e3b2942510d1fb34eec167a3ec57331bf8442122f1153a9fb8b58f5c49b2717"},
-    {file = "pre_commit-4.6.1.tar.gz", hash = "sha256:03e809865c7d178b9979d06c761fcbfe6808fdaded8581a745bb110e52050421"},
+    {file = "pre_commit-4.6.2-py2.py3-none-any.whl", hash = "sha256:e2dde9a75d3bce11bd3831c26d134df00a2803c1d818be6a0383c3dcda25dc4e"},
+    {file = "pre_commit-4.6.2.tar.gz", hash = "sha256:8f5d7bfb021ecdbcd9d49d89847082dd24172ccde534390081a679ad046e2441"},
 ]
 
 [package.dependencies]
@@ -1692,7 +1692,7 @@ description = "Pygments is a syntax highlighting package written in Python."
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "extra == \"test\" or extra == \"dev\""
+markers = "extra == \"dev\" or extra == \"test\""
 files = [
     {file = "pygments-2.20.0-py3-none-any.whl", hash = "sha256:81a9e26dd42fd28a23a2d169d86d7ac03b46e2f8b59ed4698fb4785f946d0176"},
     {file = "pygments-2.20.0.tar.gz", hash = "sha256:6757cd03768053ff99f3039c1a36d6c0aa0b263438fcab17520b30a303a82b5f"},
@@ -1783,21 +1783,22 @@ testing = ["process-tests", "pytest-xdist", "virtualenv"]
 
 [[package]]
 name = "pytest-django"
-version = "4.13.0"
+version = "4.14.0"
 description = "A Django plugin for pytest."
 optional = true
 python-versions = ">=3.10"
 groups = ["main"]
 markers = "extra == \"test\""
 files = [
-    {file = "pytest_django-4.13.0-py3-none-any.whl", hash = "sha256:09374c12d947ca0f99e33726bcb720a6d0124f67058e1130586372bd109493e3"},
-    {file = "pytest_django-4.13.0.tar.gz", hash = "sha256:2316e3f63e3bc799deb4212830e39b2ef1dcc3b2d8688060f1d0217db6a56ebe"},
+    {file = "pytest_django-4.14.0-py3-none-any.whl", hash = "sha256:c533b08d89cc675efcd5398eea270b34547e35f9a3608e2c9748dd88428ea187"},
+    {file = "pytest_django-4.14.0.tar.gz", hash = "sha256:26787dd3f422cfbab8f55b80a776e2edea7a11092cb74e960bef1312515708ef"},
 ]
 
 [package.dependencies]
 pytest = ">=7.0.0"
 
 [package.extras]
+django = ["django (>=5.2)"]
 docs = ["sphinx", "sphinx-rtd-theme"]
 
 [[package]]
@@ -2242,7 +2243,7 @@ description = "A non-validating SQL parser."
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"test\" or extra == \"dev\""
+markers = "extra == \"dev\" or extra == \"test\""
 files = [
     {file = "sqlparse-0.5.5-py3-none-any.whl", hash = "sha256:12a08b3bf3eec877c519589833aed092e2444e68240a3577e8e26148acc7b1ba"},
     {file = "sqlparse-0.5.5.tar.gz", hash = "sha256:e20d4a9b0b8585fdf63b10d30066c7c94c5d7a7ec47c889a2d83a3caa93ff28e"},
@@ -2439,7 +2440,7 @@ description = "Provider of IANA time zone data"
 optional = true
 python-versions = ">=2"
 groups = ["main"]
-markers = "sys_platform == \"win32\" and (extra == \"test\" or extra == \"dev\") or extra == \"test\" and platform_system == \"Windows\""
+markers = "sys_platform == \"win32\" and (extra == \"dev\" or extra == \"test\") or extra == \"test\" and platform_system == \"Windows\""
 files = [
     {file = "tzdata-2026.2-py2.py3-none-any.whl", hash = "sha256:bbe9af844f658da81a5f95019480da3a89415801f6cc966806612cc7169bffe7"},
     {file = "tzdata-2026.2.tar.gz", hash = "sha256:9173fde7d80d9018e02a662e168e5a2d04f87c41ea174b139fbef642eda62d10"},
@@ -2452,7 +2453,7 @@ description = "HTTP library with thread-safe connection pooling, file post, and 
 optional = true
 python-versions = ">=3.10"
 groups = ["main"]
-markers = "extra == \"test\" or extra == \"dev\""
+markers = "extra == \"dev\" or extra == \"test\""
 files = [
     {file = "urllib3-2.7.0-py3-none-any.whl", hash = "sha256:9fb4c81ebbb1ce9531cce37674bbc6f1360472bc18ca9a553ede278ef7276897"},
     {file = "urllib3-2.7.0.tar.gz", hash = "sha256:231e0ec3b63ceb14667c67be60f2f2c40a518cb38b03af60abc813da26505f4c"},
@@ -2728,4 +2729,4 @@ test = ["beautifulsoup4", "coverage", "django-coverage-plugin", "factory-boy", "
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<4"
-content-hash = "37d246cdbd951c5051f54c8b29f1fd4b2692c56016fab2e137103a6b117fcb72"
+content-hash = "acd2a175dca2aca18a5df532cd96d58edfd3a07c9aa6b6b0a1ad2705bf4dae83"
