@@ -2,6 +2,10 @@ name: Tests
 
 on:
   workflow_call:
+    secrets:
+      CODECOV_TOKEN:
+        description: 'Codecov upload token. Optional: without it the upload is attempted anonymously, which Codecov only accepts for public repositories whose owner has turned off the token requirement.'
+        required: false
     inputs:
       python-versions:
         description: 'JSON array of Python versions to test against, e.g. ["3.11","3.12"]'
@@ -82,5 +86,5 @@ jobs:
           files: ./coverage.xml
           flags: unittests
           name: codecov-umbrella
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: ${{ github.event.pull_request.head.repo.fork != true }}
