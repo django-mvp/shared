@@ -1,5 +1,12 @@
 name: Deploy Docs
 
+# Builds the documentation on every call, and publishes it to GitHub Pages only
+# from the default branch. A caller that adds `pull_request:` to its own docs.yml
+# therefore gets a build check, without a pull request ever reaching the live
+# site. Everything Pages-specific — the write permissions, the serialising
+# concurrency group, the artifact upload and the deploy itself — is scoped to
+# that path rather than declared for the whole workflow.
+
 on:
   workflow_call:
     inputs:
@@ -10,16 +17,15 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # read, not write: Configure Pages only reads the site metadata. Writing is
+      # for its `enablement` input, which stays at its default of false.
+      pages: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -29,23 +35,39 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
 
+      # Ahead of the build, as it was before this job could run on a pull
+      # request: the metadata it exports is there for the build to read.
       - name: Configure Pages
+        if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
         uses: actions/configure-pages@v6
 
       - name: Build documentation
         run: poetry run invoke docs
 
       - name: Upload artifact
+        if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
         uses: actions/upload-pages-artifact@v5
         with:
           path: ./docs
 
   deploy:
+    # A reusable workflow shares its caller's context, so on a pull request
+    # github.ref is refs/pull/N/merge and this job skips.
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    # On the job rather than the workflow. At workflow level every pull request
+    # build joins this group, so pull request runs cancel each other and cancel
+    # an in-flight deploy from the default branch.
+    concurrency:
+      group: pages
+      cancel-in-progress: true
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
