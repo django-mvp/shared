@@ -44,7 +44,7 @@ in this repo are *called by downstream repos* and produce no checks here.
 
 This repo is operated by an autonomous engineering pipeline: feature work runs
 spec→plan→tasks→implement→review→PR through org-side tooling; `specs/NNN-slug/`
-directories are generated per feature. Constitution: `memory/constitution.md`.
+directories are generated per feature. Constitution: `CONSTITUTION.md`.
 
 **Change discipline specific to this repo:** every change lands via PR behind the
 validation gate, becomes active downstream only when a new pin tag is released, and
