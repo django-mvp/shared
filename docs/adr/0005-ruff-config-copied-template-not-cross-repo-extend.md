@@ -19,12 +19,12 @@ consuming repo.
 
 ## Decision
 
-Add `templates/ruff-shared.toml`, a standalone `ruff.toml`-format file (no `[tool.ruff]`
+Add `templates/ruff-base.toml`, a standalone `ruff.toml`-format file (no `[tool.ruff]`
 wrapper) holding the settings genuinely common to the family: the lint rule selection, the
 six ignores that were common to every package before drift, the shared `extend-exclude`
 list, and the `[format]` settings. Downstream packages copy it to their repo root as
-`ruff-shared.toml` — the same copy-and-re-copy discipline already used for
-`templates/pre-commit-config.yaml` — and reference it with `extend = "ruff-shared.toml"`
+`ruff-base.toml` — the same copy-and-re-copy discipline already used for
+`templates/pre-commit-config.yaml` — and reference it with `extend = "ruff-base.toml"`
 in their own `[tool.ruff]`. A package's own file then holds only its remainder: additional
 ignores, additional excludes, per-file carve-outs, and any format keys that differ.
 
@@ -53,7 +53,7 @@ config exists to land against.
 
 ## Consequences
 
-- Downstream packages adopt this by copying `templates/ruff-shared.toml` in and trimming
+- Downstream packages adopt this by copying `templates/ruff-base.toml` in and trimming
   their own `[tool.ruff]` down to the remainder, one package per pull request.
 - A future shared-config change (e.g. adding a rule to `select`) is one edit here plus one
   re-copy per downstream repo at the next tag bump — the same propagation shape as every
