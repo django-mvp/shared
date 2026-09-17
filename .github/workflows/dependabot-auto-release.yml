@@ -1,5 +1,22 @@
 name: Dependabot Auto Release
 
+# Cuts a patch release after a Dependabot PR merges into main.
+#
+# The version in pyproject.toml is the source of truth, and this workflow must
+# move it in lockstep with the tag it creates. Deriving the next release from
+# the newest *tag* instead — what this workflow did until 2026-09-17 — lets the
+# tag run ahead of the declared version, because nothing ever wrote the bump
+# back into pyproject.toml:
+#
+#     tag v0.3.4  ->  pyproject said 0.3.3
+#     tag v0.4.1  ->  pyproject said 0.4.0
+#
+# Consumers pin this package by tag (`mvp-shared = { git = ..., tag = "v0.4.1" }`),
+# so Dependabot resolved v0.4.1 to package version 0.4.0, could not form a
+# coherent "bump X -> Y", and aborted the update job. Because the consumers
+# group all Python updates into one job, that abort silently stalled every
+# other Python update in those repos for weeks.
+
 on:
   pull_request_target:
     types: [closed]
@@ -22,61 +39,96 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Determine next release tag
-        id: next_tag
+      - name: Determine next release version
+        id: next
         shell: bash
         run: |
           set -euo pipefail
 
+          # Already tagged (e.g. a prepared release landed in the same push):
+          # nothing to cut, and nothing to bump.
           existing_on_head=$(git tag --points-at HEAD | grep -E '^v[0-9]' | head -1 || true)
           if [ -n "$existing_on_head" ]; then
+            echo "Commit already carries $existing_on_head — nothing to release."
             echo "tag=$existing_on_head" >> "$GITHUB_OUTPUT"
             echo "tag_exists_on_head=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          latest_tag=$(git tag -l 'v*' --sort=-v:refname | head -1 || true)
-          if [ -n "$latest_tag" ]; then
-            base_version="${latest_tag#v}"
-          else
-            base_version="$(grep -E '^version = ' pyproject.toml | head -1 | sed -E 's/version = "([^"]+)"/\1/')"
+          base_version="$(python3 - <<'EOF'
+          import tomllib
+          with open("pyproject.toml", "rb") as f:
+              data = tomllib.load(f)
+          print(data.get("project", {}).get("version") or data["tool"]["poetry"]["version"])
+          EOF
+          )"
+
+          # Refuse to guess. A non-semver version here previously fell through
+          # to a silent 0.0.0 default, which is how a wrong tag gets cut without
+          # anyone noticing.
+          if ! printf '%s' "$base_version" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::pyproject.toml version '$base_version' is not X.Y.Z"
+            exit 1
           fi
 
-          IFS='.' read -r major minor patch _ <<< "$base_version"
-          if [ -z "${major:-}" ] || [ -z "${minor:-}" ]; then
-            major=0
-            minor=0
-            patch=0
-          fi
-          if [ -z "${patch:-}" ]; then
-            patch=0
-          fi
-
+          IFS='.' read -r major minor patch <<< "$base_version"
           patch=$((patch + 1))
-          next_tag="v${major}.${minor}.${patch}"
+          next="${major}.${minor}.${patch}"
 
-          while git rev-parse "$next_tag" >/dev/null 2>&1; do
+          # Skip patch numbers already taken by tags cut before this fix.
+          while git rev-parse -q --verify "refs/tags/v${next}" >/dev/null 2>&1; do
             patch=$((patch + 1))
-            next_tag="v${major}.${minor}.${patch}"
+            next="${major}.${minor}.${patch}"
           done
 
-          echo "tag=$next_tag" >> "$GITHUB_OUTPUT"
+          echo "Releasing ${base_version} -> ${next}"
+          echo "version=$next" >> "$GITHUB_OUTPUT"
+          echo "tag=v$next" >> "$GITHUB_OUTPUT"
           echo "tag_exists_on_head=false" >> "$GITHUB_OUTPUT"
 
-      - name: Create and push tag
-        if: ${{ steps.next_tag.outputs.tag_exists_on_head != 'true' }}
+      - name: Bump pyproject version, commit and tag
+        if: ${{ steps.next.outputs.tag_exists_on_head != 'true' }}
         shell: bash
+        env:
+          VERSION: ${{ steps.next.outputs.version }}
+          TAG: ${{ steps.next.outputs.tag }}
         run: |
           set -euo pipefail
-          tag="${{ steps.next_tag.outputs.tag }}"
+
+          python3 - "$VERSION" <<'EOF'
+          import re, sys
+
+          version = sys.argv[1]
+          with open("pyproject.toml") as f:
+              src = f.read()
+
+          pattern = re.compile(r'(?m)^(version = ")([^"]+)(")')
+          matches = pattern.findall(src)
+          if len(matches) != 1:
+              raise SystemExit(
+                  f"expected exactly one 'version = ' line in pyproject.toml, found {len(matches)}"
+              )
+
+          with open("pyproject.toml", "w") as f:
+              f.write(pattern.sub(rf'\g<1>{version}\g<3>', src))
+          EOF
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag "$tag"
-          git push origin "$tag"
+          git add pyproject.toml
+          git commit -m "chore: release ${TAG}"
+          git tag "$TAG"
+
+          # Push the commit and its tag together. tag-release.yml fires on any
+          # push to main touching pyproject.toml; pushing atomically means it
+          # always finds the tag already present and no-ops, rather than racing
+          # this job to cut a second one.
+          git push --atomic origin main "refs/tags/${TAG}"
 
       - name: Create GitHub Release
+        if: ${{ steps.next.outputs.tag_exists_on_head != 'true' }}
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ steps.next_tag.outputs.tag }}
-          name: Release ${{ steps.next_tag.outputs.tag }}
+          tag_name: ${{ steps.next.outputs.tag }}
+          name: Release ${{ steps.next.outputs.tag }}
           generate_release_notes: true
