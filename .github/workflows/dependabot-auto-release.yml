@@ -50,8 +50,10 @@ jobs:
           existing_on_head=$(git tag --points-at HEAD | grep -E '^v[0-9]' | head -1 || true)
           if [ -n "$existing_on_head" ]; then
             echo "Commit already carries $existing_on_head — nothing to release."
-            echo "tag=$existing_on_head" >> "$GITHUB_OUTPUT"
-            echo "tag_exists_on_head=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "tag=$existing_on_head"
+              echo "tag_exists_on_head=true"
+            } >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -82,9 +84,11 @@ jobs:
           done
 
           echo "Releasing ${base_version} -> ${next}"
-          echo "version=$next" >> "$GITHUB_OUTPUT"
-          echo "tag=v$next" >> "$GITHUB_OUTPUT"
-          echo "tag_exists_on_head=false" >> "$GITHUB_OUTPUT"
+          {
+            echo "version=$next"
+            echo "tag=v$next"
+            echo "tag_exists_on_head=false"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Bump pyproject version, commit and tag
         if: ${{ steps.next.outputs.tag_exists_on_head != 'true' }}
