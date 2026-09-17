@@ -13,8 +13,7 @@
 # per-file-ignores and its format overrides, while ruff carried on reporting
 # success against a config nobody meant to run. Verified against ruff 0.15.22.
 # `ruff-base.toml` is not a discovered name, so pyproject stays authoritative
-# and pulls this file in explicitly. "Base" is Ruff's own word for what
-# `extend` points at.
+# and pulls this file in explicitly.
 #
 # A copy is only worth having if something compares it. Each repo's copy is
 # checked against this file at the shared tag that repo pins, which catches the
