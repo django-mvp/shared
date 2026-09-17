@@ -127,6 +127,15 @@ extend-ignore = []  # package-specific additions, if any
 "tests/*" = ["S101"]  # asserts are the point of a test
 ```
 
+This split is the standard, and the filename is part of it: the base config under a name
+ruff does **not** auto-discover, and the package's own settings in `pyproject.toml`. Do not
+rename the base file to `ruff.toml` or `.ruff.toml`. Ruff discovers both, and when either is
+present in a directory it uses that file *instead of* the `[tool.ruff]` section in
+`pyproject.toml` rather than merging the two, so the package's `extend`, per-file-ignores
+and format settings would quietly stop applying while lint carried on reporting success.
+Ruff's documentation gives the order: `.ruff.toml` takes precedence over `ruff.toml`, which
+takes precedence over `pyproject.toml`. Confirmed against ruff 0.15.22.
+
 Once extending, a package's own `[tool.ruff]` holds only its remainder: additional ignored
 rules under `[tool.ruff.lint] extend-ignore`, additional excluded paths under
 `extend-exclude`, per-file carve-outs for tests and examples, and any
