@@ -109,16 +109,16 @@ The template's comments explain the serialised mypy hook and what runs where in 
 
 ## Shared Ruff Configuration
 
-`templates/ruff-shared.toml` is the family-standard base ruff configuration: the shared
+`templates/ruff-base.toml` is the family-standard base ruff configuration: the shared
 rule selection, the shared ignore list, and the shared format settings. Ruff's `extend`
 option only accepts a local filesystem path, so a package cannot point at this file across
-repositories directly — copy it to the repository root as `ruff-shared.toml` (re-copy on
+repositories directly — copy it to the repository root as `ruff-base.toml` (re-copy on
 each family-standard bump, the same discipline as the pre-commit template above), then
 reference it from the package's own `pyproject.toml`:
 
 ```toml
 [tool.ruff]
-extend = "ruff-shared.toml"
+extend = "ruff-base.toml"
 
 [tool.ruff.lint]
 extend-ignore = []  # package-specific additions, if any
@@ -126,6 +126,15 @@ extend-ignore = []  # package-specific additions, if any
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101"]  # asserts are the point of a test
 ```
+
+This split is the standard, and the filename is part of it: the base config under a name
+ruff does **not** auto-discover, and the package's own settings in `pyproject.toml`. Do not
+rename the base file to `ruff.toml` or `.ruff.toml`. Ruff discovers both, and when either is
+present in a directory it uses that file *instead of* the `[tool.ruff]` section in
+`pyproject.toml` rather than merging the two, so the package's `extend`, per-file-ignores
+and format settings would quietly stop applying while lint carried on reporting success.
+Ruff's documentation gives the order: `.ruff.toml` takes precedence over `ruff.toml`, which
+takes precedence over `pyproject.toml`. Confirmed against ruff 0.15.22.
 
 Once extending, a package's own `[tool.ruff]` holds only its remainder: additional ignored
 rules under `[tool.ruff.lint] extend-ignore`, additional excluded paths under
