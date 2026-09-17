@@ -109,16 +109,16 @@ The template's comments explain the serialised mypy hook and what runs where in 
 
 ## Shared Ruff Configuration
 
-`templates/ruff-shared.toml` is the family-standard base ruff configuration: the shared
+`templates/ruff-base.toml` is the family-standard base ruff configuration: the shared
 rule selection, the shared ignore list, and the shared format settings. Ruff's `extend`
 option only accepts a local filesystem path, so a package cannot point at this file across
-repositories directly — copy it to the repository root as `ruff-shared.toml` (re-copy on
+repositories directly — copy it to the repository root as `ruff-base.toml` (re-copy on
 each family-standard bump, the same discipline as the pre-commit template above), then
 reference it from the package's own `pyproject.toml`:
 
 ```toml
 [tool.ruff]
-extend = "ruff-shared.toml"
+extend = "ruff-base.toml"
 
 [tool.ruff.lint]
 extend-ignore = []  # package-specific additions, if any
