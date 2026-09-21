@@ -608,15 +608,15 @@ rich = ">=13"
 
 [[package]]
 name = "django-stubs"
-version = "6.1.0"
+version = "6.1.1"
 description = "Mypy stubs for Django"
 optional = true
 python-versions = ">=3.11"
 groups = ["main"]
 markers = "extra == \"dev\""
 files = [
-    {file = "django_stubs-6.1.0-py3-none-any.whl", hash = "sha256:63b23ccca2616d464ed7e37d1ce44960315cb3cecab75b23c928467ef125e560"},
-    {file = "django_stubs-6.1.0.tar.gz", hash = "sha256:b6aecc5c738a103135f76ba160a6f75e3b27dcf0200c64d7226018cdbc2340dd"},
+    {file = "django_stubs-6.1.1-py3-none-any.whl", hash = "sha256:a913d0c35242cd820f638486118fd542d687b6a85104bea9cb7e635b52b889e3"},
+    {file = "django_stubs-6.1.1.tar.gz", hash = "sha256:291fd79197416d191ec9f4e443bc6800b64dd5d41e476b91e679495d005f3d61"},
 ]
 
 [package.dependencies]
@@ -2774,4 +2774,4 @@ test = ["beautifulsoup4", "coverage", "django-coverage-plugin", "factory-boy", "
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<4"
-content-hash = "9cda0de86a37f0d7a0018b42bdde3eabda18bb651c68b195a7572edc0243b6a2"
+content-hash = "825a762c41de8826d2e783dc8f4771020844e670be322ec6715aa3b045209efe"
