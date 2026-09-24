@@ -3,7 +3,7 @@
 name = "mvp-shared"
 description = "Shared development, docs and testing tools for the django-mvp org"
 license = "MIT"
-version = "0.5.0"
+version = "0.6.0"
 readme = "README.md"
 authors = [{ name = "Sam", email = "samuel.scott.jennings@gmail.com" }]
 requires-python = '>=3.12,<4'
