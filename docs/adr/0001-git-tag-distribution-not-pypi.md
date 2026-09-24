@@ -13,9 +13,9 @@ Distribution is by **git dependency pinned to a `vX.Y.Z` tag**. No PyPI publicat
 
 ## Rationale
 
-- Every consumer is a Poetry-managed repo in the same family; git dependencies with a tag
-  are fully reproducible there and need no publishing pipeline, credentials, or index
-  metadata.
+- Every consumer is a Poetry-managed repo that has adopted this standard; git dependencies
+  with a tag are fully reproducible there and need no publishing pipeline, credentials, or
+  index metadata.
 - One tag then versions the *entire* standard — workflow calls (`@vX.Y.Z`) and the
   dependency bundles reference the same ref, so "which standard is this repo on" has a
   single answer.

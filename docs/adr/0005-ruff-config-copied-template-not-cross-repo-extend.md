@@ -4,8 +4,9 @@
 
 ## Context
 
-Every package in the family carries its own full copy of `[tool.ruff]` in `pyproject.toml`.
-The shared bundle pins ruff's *version* (ADR 0004), but not its *configuration*, so the
+Every package that adopts this standard carries its own full copy of `[tool.ruff]` in
+`pyproject.toml`. The shared bundle pins ruff's *version* (ADR 0004), but not its
+*configuration*, so the
 settings had already drifted: a stray `target-version` in one package that disagreed with
 its own `requires-python`, `[tool.ruff.format]` present in only two of five packages, and
 ignore lists that had grown from a common six entries to as many as ten with no record of
@@ -20,8 +21,8 @@ consuming repo.
 ## Decision
 
 Add `templates/ruff-base.toml`, a standalone `ruff.toml`-format file (no `[tool.ruff]`
-wrapper) holding the settings genuinely common to the family: the lint rule selection, the
-six ignores that were common to every package before drift, the shared `extend-exclude`
+wrapper) holding the settings genuinely common to every package: the lint rule selection,
+the six ignores that were common to every package before drift, the shared `extend-exclude`
 list, and the `[format]` settings. Downstream packages copy it to their repo root as
 `ruff-base.toml` — the same copy-and-re-copy discipline already used for
 `templates/pre-commit-config.yaml` — and reference it with `extend = "ruff-base.toml"`
@@ -48,8 +49,8 @@ config exists to land against.
   it is the one this repo already uses for the pre-commit template, so there is one
   distribution discipline to remember, not two.
 - Keeping `line-length` and `target-version` out of the shared file (rather than pinning
-  the family to a value there) matches the standard already adopted in the family's most
-  current package: infer, don't restate.
+  every package to a value there) matches the standard already adopted in the most
+  recently updated package: infer, don't restate.
 
 ## Consequences
 
@@ -57,6 +58,6 @@ config exists to land against.
   their own `[tool.ruff]` down to the remainder, one package per pull request.
 - A future shared-config change (e.g. adding a rule to `select`) is one edit here plus one
   re-copy per downstream repo at the next tag bump — the same propagation shape as every
-  other part of the family standard (ADR 0002).
+  other part of the shared standard (ADR 0002).
 - If ruff ever adds native support for a remote `extend` target, this ADR is revisited;
   today's decision is a consequence of `extend` accepting only a local path.

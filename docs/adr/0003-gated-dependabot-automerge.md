@@ -5,8 +5,8 @@
 ## Context
 
 Weekly grouped Dependabot PRs bump the dependency bundles. Before onboarding, these
-auto-merged to an unprotected `main` with no checks — on the highest-trust repo in the
-family, whose workflows run downstream with `secrets: inherit`.
+auto-merged to an unprotected `main` with no checks — on the repo every other one trusts
+most, whose workflows run downstream with `secrets: inherit`.
 
 ## Decision
 

@@ -2,7 +2,7 @@
 
 Single-context layout:
 
-- **`CONTEXT.md`** (repo root) — the glossary. Every core concept of the family standard
+- **`CONTEXT.md`** (repo root) — the glossary. Every core concept of the shared standard
   (reusable workflow, caller, meta-package, bundle, pin tag, template, propagation) is
   defined there; specs and reviews use that vocabulary.
 - **`docs/adr/`** — one file per standing architectural decision. Read before proposing
