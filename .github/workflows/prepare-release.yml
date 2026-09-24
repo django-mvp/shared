@@ -111,15 +111,15 @@ jobs:
             exit 1
           fi
 
-      - name: Re-pin the internal setup-poetry references to this release
-        # Self-reference rewrite: only this repo's own release carries a
-        # setup-poetry@vX action to re-pin. Called from a downstream repo
+      - name: Re-pin the internal action references to this release
+        # Self-reference rewrite: only this repo's own release carries an
+        # internal action@vX to re-pin. Called from a downstream repo
         # (github.repository is the CALLER in a reusable workflow), this step
         # must not run — it would rewrite the caller's OWN pins to the caller's
         # version number instead of leaving them alone, silently downgrading
         # them to whatever tag happens to share that number (django-mvp/shared#41).
         #
-        # These files call setup-poetry by owner/repo/path@ref rather than a
+        # These files call the action by owner/repo/path@ref rather than a
         # local path, because `uses: ./...` inside a reusable workflow resolves
         # against the CALLING repo's checkout, not this one. The references must
         # track this repo's own release tag or a downstream caller pinned to a
@@ -132,6 +132,13 @@ jobs:
         # docs.yml and publish-pypi/action.yml, which floated on @main across
         # three releases while the two named files were pinned correctly.
         #
+        # The action name is matched as a wildcard rather than spelled out, for
+        # the same reason the file list is discovered rather than written down.
+        # The pattern named setup-poetry alone until a second setup action was
+        # added, at which point every reference to the new one would have shipped
+        # on whatever ref it was written with, invisibly, and the check below
+        # would have passed because it was looking for the other name.
+        #
         # This file is excluded because it quotes the reference as a search
         # pattern. Without that, the step rewrites its own patterns and the
         # check below reports its own source as unpinned.
@@ -140,18 +147,19 @@ jobs:
           VERSION: ${{ steps.bump.outputs.version }}
         run: |
           set -euo pipefail
-          PATTERN='django-mvp/shared/\.github/actions/setup-poetry'
+          PATTERN='django-mvp/shared/\.github/actions/[A-Za-z0-9_-]+'
           mapfile -t FILES < <(grep -rlE "${PATTERN}@" .github/ --exclude=prepare-release.yml)
           if [ "${#FILES[@]}" -eq 0 ]; then
-            echo "::error::No setup-poetry references found. The reference format"
-            echo "::error::changed and this step is no longer re-pinning anything."
+            echo "::error::No internal action references found. The reference"
+            echo "::error::format changed and this step is no longer re-pinning"
+            echo "::error::anything."
             exit 1
           fi
           printf 'Re-pinning %s file(s):\n' "${#FILES[@]}"
           printf '  %s\n' "${FILES[@]}"
           sed -i -E "s#(${PATTERN})@[^[:space:]]+#\1@v${VERSION}#" "${FILES[@]}"
 
-      - name: Verify no setup-poetry reference was left behind
+      - name: Verify no internal action reference was left behind
         # A missed file is invisible from downstream: the caller looks correctly
         # pinned. Fail the release rather than ship a half-pinned tag.
         if: github.repository == 'django-mvp/shared'
@@ -159,15 +167,15 @@ jobs:
           VERSION: ${{ steps.bump.outputs.version }}
         run: |
           set -euo pipefail
-          PATTERN='django-mvp/shared/\.github/actions/setup-poetry'
+          PATTERN='django-mvp/shared/\.github/actions/[A-Za-z0-9_-]+'
           STRAY="$(grep -rnE "${PATTERN}@" .github/ --exclude=prepare-release.yml \
                    | grep -vE "@v${VERSION}\$" || true)"
           if [ -n "$STRAY" ]; then
-            echo "::error::setup-poetry references not pinned to v${VERSION}:"
+            echo "::error::internal action references not pinned to v${VERSION}:"
             echo "$STRAY"
             exit 1
           fi
-          echo "All setup-poetry references pinned to v${VERSION}."
+          echo "All internal action references pinned to v${VERSION}."
           git diff --stat
 
       - name: Update changelog

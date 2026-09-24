@@ -149,6 +149,30 @@ defaults to 88 (matching Black), and target-version is inferred from the package
 
 Downstream repositories can call these workflows directly from their own workflow files.
 
+### Choosing a package manager
+
+`build.yml`, `tests.yml` and `docs.yml` each take a `package-manager` input that selects
+how the environment is set up. It defaults to `poetry`, so a caller that does not set it
+keeps working exactly as before.
+
+| `package-manager` | Environment built by | Extra arguments input |
+|---|---|---|
+| `poetry` (default) | `poetry install` against `poetry.lock` | `poetry-install-args` |
+| `uv` | `uv sync --locked` against `uv.lock` | `uv-sync-args` |
+
+A repository sets this once, when its `pyproject.toml` and lockfile move to uv. Both
+tracks install into `.venv` and put it on `PATH`, so everything the workflows run after
+setup — `pytest`, `pre-commit`, `sphinx-build` — is identical on either.
+
+Two checks differ, because the tools do:
+
+- **Lockfile consistency.** On the poetry track `build.yml` runs `poetry check --lock` as
+  its own step. On the uv track the setup action syncs with `--locked`, which already
+  fails on a stale lockfile, so the separate step is skipped rather than missing.
+- **Package metadata.** `poetry check` validates the source `pyproject.toml`. uv has no
+  equivalent, so the uv track runs `twine check` over the built wheel and sdist instead,
+  which reads the metadata the way PyPI's upload endpoint does.
+
 ### Build
 
 Reusable workflow: .github/workflows/build.yml
@@ -160,6 +184,8 @@ Required inputs:
 Optional inputs:
 
 - python-version (default: 3.13)
+- package-manager (default: poetry)
+- uv-sync-args (default: empty)
 
 Example caller workflow:
 
@@ -191,7 +217,9 @@ Optional inputs:
 
 - python-versions (default: ["3.12", "3.13"])
 - django-versions (default: ["5.2", "6.0"])
+- package-manager (default: poetry)
 - poetry-install-args (default: --with test)
+- uv-sync-args (default: empty)
 - coverage-python-version (default: 3.13)
 - coverage-django-version (default: 5.2)
 - install-playwright (default: false)
@@ -224,6 +252,8 @@ Reusable workflow: .github/workflows/docs.yml
 Optional inputs:
 
 - python-version (default: 3.13)
+- package-manager (default: poetry)
+- uv-sync-args (default: empty)
 
 Example caller workflow:
 
@@ -270,6 +300,58 @@ jobs:
     uses: django-mvp/shared/.github/workflows/release.yml@v0.1.0
     secrets: inherit
 ```
+
+## Composite Actions
+
+The reusable workflows above call these to build the project environment. A downstream
+repository normally reaches them through a workflow rather than directly, but both are
+usable on their own.
+
+Each one installs the project and its dependencies into `.venv`, then exports three
+things so the steps that follow do not need to know which was used:
+
+- `.venv/bin` on `PATH`, so tools are invoked bare (`pytest`, not `poetry run pytest`)
+- `VIRTUAL_ENV`
+- `PYTHON_INSTALL_CMD`, the command for installing an extra package into the environment
+
+### setup-poetry
+
+Composite action: .github/actions/setup-poetry
+
+Installs Python via `actions/setup-python`, then Poetry, and runs `poetry install`. Caches
+`.venv` directly, keyed on the resolved interpreter patch release (see ADR 0008).
+
+Optional inputs:
+
+- python-version (default: 3.13)
+- poetry-version (default: 2.3.2)
+- poetry-install-args (default: empty)
+- cache-key-suffix (default: empty)
+
+### setup-uv
+
+Composite action: .github/actions/setup-uv
+
+Installs uv via `astral-sh/setup-uv`, which also provides the interpreter, then runs
+`uv sync --locked`. `--locked` fails the job on a lockfile that is out of date with
+`pyproject.toml` rather than quietly re-resolving it, matching how `poetry install`
+refuses an inconsistent lock.
+
+Caches uv's global package cache rather than the resolved environment. The poetry action
+has to cache `.venv` and key it on the interpreter's patch release, because an in-project
+virtual environment stores an absolute interpreter path and stops working when the runner
+image rolls forward. Caching downloads instead avoids that failure entirely: the
+environment is always built fresh, from cached wheels.
+
+Optional inputs:
+
+- python-version (default: 3.13)
+- uv-version (default: 0.11.19)
+- uv-sync-args (default: empty)
+- cache-key-suffix (default: empty)
+
+`cache-key-suffix` exists for the same reason on both: two jobs in one workflow run that
+resolve to the same inputs otherwise race to write the same cache entry.
 
 ## Version Pinning Recommendation
 

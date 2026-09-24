@@ -15,10 +15,18 @@ on:
         description: 'JSON array of Django versions to test against, e.g. ["4.2","5.2"]'
         type: string
         default: '["5.2", "6.0"]'
+      package-manager:
+        description: 'Which package manager sets up the environment: poetry or uv'
+        type: string
+        default: 'poetry'
       poetry-install-args:
-        description: 'Extra args passed to poetry install, e.g. --with test'
+        description: 'Extra args passed to poetry install, e.g. --with test. Ignored when package-manager is uv'
         type: string
         default: '--with test'
+      uv-sync-args:
+        description: 'Extra args passed to uv sync, e.g. --extra test. Ignored when package-manager is poetry'
+        type: string
+        default: ''
       coverage-package:
         description: 'Package directory to measure coverage for, e.g. mvp or dac'
         type: string
@@ -56,19 +64,35 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Set up Poetry env
+        if: inputs.package-manager == 'poetry'
         uses: django-mvp/shared/.github/actions/setup-poetry@v0.4.1
         with:
           python-version: ${{ matrix.python-version }}
           poetry-install-args: ${{ inputs.poetry-install-args }}
           cache-key-suffix: ${{ matrix.django-version }}
 
+      - name: Set up uv env
+        if: inputs.package-manager == 'uv'
+        uses: django-mvp/shared/.github/actions/setup-uv@v0.4.1
+        with:
+          python-version: ${{ matrix.python-version }}
+          uv-sync-args: ${{ inputs.uv-sync-args }}
+          cache-key-suffix: ${{ matrix.django-version }}
+
+      # Both setup actions put the environment's bin directory on PATH and export
+      # PYTHON_INSTALL_CMD, so every step below is written once and runs unchanged
+      # on either track.
       - name: Pin Django version
-        run: poetry run pip install "django~=${{ matrix.django-version }}"
+        run: |
+          # The variable holds a command and its subcommand ("pip install" or
+          # "uv pip install"), so the word split is intended here.
+          # shellcheck disable=SC2086
+          $PYTHON_INSTALL_CMD "django~=${{ matrix.django-version }}"
 
       - name: Resolve Playwright version
         if: inputs.install-playwright
         id: playwright-version
-        run: echo "version=$(poetry run python -c 'import importlib.metadata; print(importlib.metadata.version(\"playwright\"))')" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(python -c 'import importlib.metadata; print(importlib.metadata.version(\"playwright\"))')" >> "$GITHUB_OUTPUT"
 
       - name: Cache Playwright browsers
         if: inputs.install-playwright
@@ -79,16 +103,16 @@ jobs:
 
       - name: Install Playwright browsers
         if: inputs.install-playwright
-        run: poetry run playwright install --with-deps chromium
+        run: playwright install --with-deps chromium
 
       - name: Run tests
         env:
           IS_COVERAGE_RUN: ${{ matrix.python-version == inputs.coverage-python-version && matrix.django-version == inputs.coverage-django-version }}
         run: |
           if [ "$IS_COVERAGE_RUN" = "true" ]; then
-            poetry run pytest --cov=${{ inputs.coverage-package }} --cov-report=xml
+            pytest --cov=${{ inputs.coverage-package }} --cov-report=xml
           else
-            poetry run pytest
+            pytest
           fi
 
       - name: Upload coverage to Codecov

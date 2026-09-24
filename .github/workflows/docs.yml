@@ -14,6 +14,14 @@ on:
         description: 'Python version to use'
         type: string
         default: '3.13'
+      package-manager:
+        description: 'Which package manager sets up the environment: poetry or uv'
+        type: string
+        default: 'poetry'
+      uv-sync-args:
+        description: 'Extra args passed to uv sync, e.g. --extra dev. Ignored when package-manager is poetry'
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -31,9 +39,17 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Set up Poetry env
+        if: inputs.package-manager == 'poetry'
         uses: django-mvp/shared/.github/actions/setup-poetry@v0.4.1
         with:
           python-version: ${{ inputs.python-version }}
+
+      - name: Set up uv env
+        if: inputs.package-manager == 'uv'
+        uses: django-mvp/shared/.github/actions/setup-uv@v0.4.1
+        with:
+          python-version: ${{ inputs.python-version }}
+          uv-sync-args: ${{ inputs.uv-sync-args }}
 
       # Ahead of the build, as it was before this job could run on a pull
       # request: the metadata it exports is there for the build to read.
@@ -42,7 +58,7 @@ jobs:
         uses: actions/configure-pages@v6
 
       - name: Build documentation
-        run: poetry run sphinx-build -E -b html docs docs/_build
+        run: sphinx-build -E -b html docs docs/_build
 
       - name: Upload artifact
         if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)

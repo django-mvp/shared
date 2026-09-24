@@ -73,3 +73,15 @@ runs:
     - name: Install project
       shell: bash
       run: poetry install --no-interaction --only-root
+
+    # Put the venv on PATH so every downstream step invokes tools bare —
+    # `pytest`, `sphinx-build`, `pre-commit` — instead of prefixing each with
+    # `poetry run`. The uv action exports the same three variables, so a calling
+    # workflow needs only one copy of each tool step regardless of which package
+    # manager set the environment up. `poetry run` still works and is unaffected.
+    - name: Export the environment
+      shell: bash
+      run: |
+        echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+        echo "VIRTUAL_ENV=$PWD/.venv" >> "$GITHUB_ENV"
+        echo "PYTHON_INSTALL_CMD=pip install" >> "$GITHUB_ENV"

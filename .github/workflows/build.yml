@@ -11,6 +11,14 @@ on:
         description: 'Python version to use for all build jobs'
         type: string
         default: '3.13'
+      package-manager:
+        description: 'Which package manager sets up the environment: poetry or uv'
+        type: string
+        default: 'poetry'
+      uv-sync-args:
+        description: 'Extra args passed to uv sync, e.g. --extra dev. Ignored when package-manager is poetry'
+        type: string
+        default: ''
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -28,9 +36,18 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Set up Poetry env
+        if: inputs.package-manager == 'poetry'
         uses: django-mvp/shared/.github/actions/setup-poetry@v0.4.1
         with:
           python-version: ${{ inputs.python-version }}
+          cache-key-suffix: code-quality
+
+      - name: Set up uv env
+        if: inputs.package-manager == 'uv'
+        uses: django-mvp/shared/.github/actions/setup-uv@v0.4.1
+        with:
+          python-version: ${{ inputs.python-version }}
+          uv-sync-args: ${{ inputs.uv-sync-args }}
           cache-key-suffix: code-quality
 
       - name: Load cached pre-commit
@@ -39,11 +56,15 @@ jobs:
           path: ~/.cache/pre-commit
           key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
 
+      # The uv setup action already syncs with --locked, which fails on a stale
+      # lockfile, so this step is the poetry track's equivalent of that check
+      # rather than an extra gate the uv track is missing.
       - name: Check Poetry lock file consistency
+        if: inputs.package-manager == 'poetry'
         run: poetry check --lock
 
       - name: Run pre-commit checks
-        run: poetry run pre-commit run --all-files
+        run: pre-commit run --all-files
 
   security:
     name: Security Scan
@@ -54,9 +75,18 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Set up Poetry env
+        if: inputs.package-manager == 'poetry'
         uses: django-mvp/shared/.github/actions/setup-poetry@v0.4.1
         with:
           python-version: ${{ inputs.python-version }}
+          cache-key-suffix: security
+
+      - name: Set up uv env
+        if: inputs.package-manager == 'uv'
+        uses: django-mvp/shared/.github/actions/setup-uv@v0.4.1
+        with:
+          python-version: ${{ inputs.python-version }}
+          uv-sync-args: ${{ inputs.uv-sync-args }}
           cache-key-suffix: security
 
       - name: Run bandit security linter
@@ -67,7 +97,10 @@ jobs:
         # bandit's own "issues found" exit code; the emitted artefact is
         # asserted on next, never a piped exit code.
         run: |
-          pip install "bandit[toml]"
+          # The variable holds a command and its subcommand ("pip install" or
+          # "uv pip install"), so the word split is intended here.
+          # shellcheck disable=SC2086
+          $PYTHON_INSTALL_CMD "bandit[toml]"
           bandit -r ${{ inputs.source-dir }}/ -f json -o bandit-report.json || true
 
       - name: Verify bandit report was produced
@@ -85,13 +118,17 @@ jobs:
       - name: Run pip-audit for known vulnerabilities
         # pip-audit replaces safety (django-mvp/shared#23): safety 3.x needs an
         # authenticated account against its vulnerability database, which is
-        # the wrong shape for unattended CI. pip-audit needs none. It runs via
-        # `poetry run` so it audits the packages this job actually installed,
-        # not the runner's bare system interpreter; --local excludes anything
-        # outside that venv from the report.
+        # the wrong shape for unattended CI. pip-audit needs none. It is
+        # installed into, and run from, the project environment this job set up,
+        # so it audits the packages actually installed rather than the runner's
+        # bare system interpreter; --local excludes anything outside that
+        # environment from the report.
         run: |
-          poetry run pip install pip-audit
-          poetry run pip-audit --local --format json --output pip-audit-report.json --progress-spinner off || true
+          # The variable holds a command and its subcommand ("pip install" or
+          # "uv pip install"), so the word split is intended here.
+          # shellcheck disable=SC2086
+          $PYTHON_INSTALL_CMD pip-audit
+          pip-audit --local --format json --output pip-audit-report.json --progress-spinner off || true
 
       - name: Verify pip-audit report was produced
         run: |
@@ -115,16 +152,36 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Set up Poetry env
+        if: inputs.package-manager == 'poetry'
         uses: django-mvp/shared/.github/actions/setup-poetry@v0.4.1
         with:
           python-version: ${{ inputs.python-version }}
           cache-key-suffix: package
 
-      - name: Build package
-        run: poetry build
+      - name: Set up uv env
+        if: inputs.package-manager == 'uv'
+        uses: django-mvp/shared/.github/actions/setup-uv@v0.4.1
+        with:
+          python-version: ${{ inputs.python-version }}
+          uv-sync-args: ${{ inputs.uv-sync-args }}
+          cache-key-suffix: package
 
+      - name: Build package
+        run: ${{ inputs.package-manager }} build
+
+      # `poetry check` validates the pyproject against poetry's own schema. uv
+      # has no equivalent command, so the uv track asserts the built artefacts
+      # instead: twine reads the wheel and sdist metadata the way PyPI's upload
+      # endpoint does, including whether the rendered long description parses.
+      # That is a check on what actually ships rather than on the source that
+      # produced it. `uvx` runs it without adding twine to any bundle.
       - name: Check package metadata
-        run: poetry check
+        run: |
+          if [ "${{ inputs.package-manager }}" = "uv" ]; then
+            uvx twine check dist/*
+          else
+            poetry check
+          fi
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
