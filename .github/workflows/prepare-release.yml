@@ -1,6 +1,6 @@
 name: Prepare Release
 
-# Step 1 of the family release flow: opens the release PR (version bump +
+# Step 1 of the shared release flow: opens the release PR (version bump +
 # CHANGELOG section). Merging that PR is the release decision; the Tag Release
 # workflow then cuts the tag and GitHub Release from the merge commit.
 #
