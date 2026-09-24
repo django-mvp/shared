@@ -48,10 +48,10 @@ dev = [
 packages = ["mvp_shared"]
 
 # Hatchling's default source distribution is the whole working tree. This keeps
-# it to the package, the readme and the licence.
+# it to the package, the readme and the licence. Hatchling adds .gitignore itself,
+# so that a build from the source distribution leaves out what the repository does.
 [tool.hatch.build.targets.sdist]
 include = ["mvp_shared", "README.md", "LICENSE"]
-exclude = [".gitignore"]
 
 [build-system]
 requires = ["hatchling"]
