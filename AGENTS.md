@@ -2,10 +2,11 @@
 
 <!-- Thin index only — details live in the pointed-to files. -->
 
-This repository is the django-mvp family standard: reusable CI workflows and composite
-actions that downstream repos call, the `mvp-shared` meta-package whose extras pin the
-family toolchain, and templates (pre-commit) that downstream repos copy. It ships no
-runtime code. See `CONTEXT.md` for the vocabulary.
+This repository is the development standard every django-mvp repository follows: reusable
+CI workflows and composite actions that downstream repos call, the `mvp-shared`
+meta-package whose extras pin one version of each tool across all those repositories, and
+templates (pre-commit) that downstream repos copy. It ships no runtime code. See
+`CONTEXT.md` for the vocabulary.
 
 ## Stack & commands
 
@@ -48,4 +49,5 @@ directories are generated per feature. Constitution: `CONSTITUTION.md`.
 
 **Change discipline specific to this repo:** every change lands via PR behind the
 validation gate, becomes active downstream only when a new pin tag is released, and
-reaches the family through per-repo propagation PRs — never silently via `@main`.
+reaches each downstream repository through its own propagation PR — never silently via
+`@main`.

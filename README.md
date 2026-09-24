@@ -7,14 +7,15 @@ This repository provides:
 - A single shared package for dev and test dependency bundles.
 - Reusable CI workflows for build, test matrix, docs deploy, and release.
 - Composite actions used by those workflows.
-- A family-standard pre-commit template downstream repositories copy.
-- A family-standard base ruff configuration downstream repositories copy and extend.
+- A pre-commit template every downstream repository copies.
+- A base ruff configuration every downstream repository copies and extends.
 
 ## Scope & philosophy
 
 This repository is the single source of the development standard for the django-mvp
-family: how every downstream repository is built, tested, linted, and released, and which
-tool versions it does that with. One tagged release here versions the whole standard.
+packages and any other repository that adopts it: how each one is built, tested, linted,
+and released, and which tool versions it does that with. One tagged release here versions
+the whole standard.
 
 It deliberately ships no runtime code — the installable package is an empty shell whose
 only job is carrying dependency bundles. It is not a Django app, not a general-purpose
@@ -22,8 +23,8 @@ actions library, and not a place for repo-specific configuration: anything only 
 downstream repository needs belongs in that repository.
 
 When choices collide: reproducibility beats convenience (pin tags, never `main`), one
-family-wide standard beats per-repo flexibility, and automation is only as trusted as the
-validation gating it.
+standard applied identically in every downstream repository beats per-repo flexibility,
+and automation is only as trusted as the validation gating it.
 
 ## Use In Downstream Projects
 
@@ -100,21 +101,21 @@ used, and will be removed.
 
 ## Pre-commit Template
 
-`templates/pre-commit-config.yaml` is the family-standard hook set: ruff (lint + format),
-mypy, and deptry running as local hooks inside the Poetry environment, with versions
-supplied by the `dev` bundle. Copy it to the repository root as
+`templates/pre-commit-config.yaml` is the hook set every downstream repository runs: ruff
+(lint + format), mypy, and deptry running as local hooks inside the Poetry environment,
+with versions supplied by the `dev` bundle. Copy it to the repository root as
 `.pre-commit-config.yaml`, replace the package-directory placeholder, and enable ruff's
 `UP` rules in `[tool.ruff.lint]` (they replace pyupgrade; `ruff format` replaces black).
 The template's comments explain the serialised mypy hook and what runs where in CI.
 
 ## Shared Ruff Configuration
 
-`templates/ruff-base.toml` is the family-standard base ruff configuration: the shared
-rule selection, the shared ignore list, and the shared format settings. Ruff's `extend`
-option only accepts a local filesystem path, so a package cannot point at this file across
-repositories directly — copy it to the repository root as `ruff-base.toml` (re-copy on
-each family-standard bump, the same discipline as the pre-commit template above), then
-reference it from the package's own `pyproject.toml`:
+`templates/ruff-base.toml` is the base ruff configuration every downstream repository
+extends: the shared rule selection, the shared ignore list, and the shared format
+settings. Ruff's `extend` option only accepts a local filesystem path, so a package cannot
+point at this file across repositories directly — copy it to the repository root as
+`ruff-base.toml` (re-copy on each change to this file, the same discipline as the
+pre-commit template above), then reference it from the package's own `pyproject.toml`:
 
 ```toml
 [tool.ruff]

@@ -26,9 +26,9 @@ its vulnerability database, which does not fit an unattended CI job; pip-audit n
 
 ## Rationale
 
-- Arming findings as a hard gate now would turn every family repo red on the next scan with
-  no chance to triage first — the risk noted when this was filed. A report first, gate
-  later once the family has looked at what it actually surfaces.
+- Arming findings as a hard gate now would turn every downstream repo red on the next scan
+  with no chance to triage first — the risk noted when this was filed. A report first, gate
+  later once the reports have been looked at across these repositories.
 - The failure mode this fixes was specifically a broken scanner *looking* clean. Gating on
   the artefact rather than the tool's exit code is what catches that class of bug — a
   scanner that finds nothing legitimately still writes a valid, empty report; one that
@@ -39,5 +39,5 @@ its vulnerability database, which does not fit an unattended CI job; pip-audit n
 - Findings are visible only via the uploaded `bandit-report` / `pip-audit-report`
   artefacts; nobody is notified, and no PR is blocked, until a follow-up decides to arm one
   or both as a gate.
-- Revisit this ADR once the family has seen a few cycles of real report output and can set
-  an informed bar for what should fail a build.
+- Revisit this ADR once these repositories have seen a few cycles of real report output
+  and can set an informed bar for what should fail a build.
