@@ -91,7 +91,7 @@ all of them:
   packages = ["<package_dir>"]
 
   [tool.hatch.build.targets.sdist]
-  include = ["<package_dir>", "README.md", "LICENSE"]
+  include = ["/<package_dir>", "/README.md", "/LICENSE"]
   ```
 
   Set the sdist `include`. `poetry-core` published only the package directory, the readme
@@ -101,11 +101,18 @@ all of them:
   packages either way. Hatchling always adds the repository's `.gitignore` to the source
   distribution, so that a build from it leaves out the same files, and no setting removes
   it.
+
+  Start every `include` entry with a slash. The entries are gitignore-style patterns, so
+  an unanchored `README.md` also matches `tests/README.md`, `demo/README.md` and any other
+  nested copy, and ships them all.
 - **Lockfile.** Delete `poetry.lock`, run `uv lock`, commit `uv.lock`. Expect some
   dependency versions to move: uv resolves afresh.
 - **Workflow callers.** Repin to the latest release. Remove `poetry-install-args`, and remove
   `django-versions` too when it only repeats the default. Pass
   `uv-sync-args` only if the repository needs something beyond the default groups.
+  A caller of `docs.yml` must grant `contents: read`, `pages: write` and `id-token: write`
+  in a top-level `permissions` block. The deploy job needs them, and GitHub checks the
+  grant when the run starts, even on a pull request where that job is skipped.
 - **Pre-commit.** Re-copy `templates/pre-commit-config.yaml`. Its hooks run through
   `uv run`, and `uv-lock` replaces `poetry-check` and `poetry-lock`.
 - **Dependabot.** Change the Python entry's `package-ecosystem` from `pip` to `uv`, so
