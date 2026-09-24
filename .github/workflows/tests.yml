@@ -15,16 +15,8 @@ on:
         description: 'JSON array of Django versions to test against, e.g. ["4.2","5.2"]'
         type: string
         default: '["5.2", "6.0"]'
-      package-manager:
-        description: 'Which package manager sets up the environment: poetry or uv'
-        type: string
-        default: 'poetry'
-      poetry-install-args:
-        description: 'Extra args passed to poetry install, e.g. --with test. Ignored when package-manager is uv'
-        type: string
-        default: '--with test'
       uv-sync-args:
-        description: 'Extra args passed to uv sync, e.g. --extra test. Ignored when package-manager is poetry'
+        description: 'Extra args passed to uv sync, e.g. --extra test'
         type: string
         default: ''
       coverage-package:
@@ -58,41 +50,41 @@ jobs:
         python-version: ${{ fromJson(inputs.python-versions) }}
         django-version: ${{ fromJson(inputs.django-versions) }}
       fail-fast: false
+    env:
+      # `uv run` normally re-syncs the environment to uv.lock before every
+      # command. Here that would quietly undo the Django version installed for
+      # this matrix leg and run every leg against the locked Django instead. The
+      # environment is synced once, explicitly, in the step below.
+      UV_NO_SYNC: "1"
 
     steps:
       - name: Check out
         uses: actions/checkout@v7
 
-      - name: Set up Poetry env
-        if: inputs.package-manager == 'poetry'
-        uses: django-mvp/shared/.github/actions/setup-poetry@v0.4.1
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.2.0
         with:
           python-version: ${{ matrix.python-version }}
-          poetry-install-args: ${{ inputs.poetry-install-args }}
-          cache-key-suffix: ${{ matrix.django-version }}
+          enable-cache: true
+          cache-suffix: ${{ matrix.django-version }}
 
-      - name: Set up uv env
-        if: inputs.package-manager == 'uv'
-        uses: django-mvp/shared/.github/actions/setup-uv@v0.4.1
-        with:
-          python-version: ${{ matrix.python-version }}
-          uv-sync-args: ${{ inputs.uv-sync-args }}
-          cache-key-suffix: ${{ matrix.django-version }}
+      # --locked fails the job when uv.lock is out of date with pyproject.toml,
+      # rather than re-resolving and testing whatever that happens to produce.
+      - name: Sync dependencies
+        run: uv sync --locked ${{ inputs.uv-sync-args }}
 
-      # Both setup actions put the environment's bin directory on PATH and export
-      # PYTHON_INSTALL_CMD, so every step below is written once and runs unchanged
-      # on either track.
       - name: Pin Django version
+        env:
+          DJANGO_VERSION: ${{ matrix.django-version }}
         run: |
-          # The variable holds a command and its subcommand ("pip install" or
-          # "uv pip install"), so the word split is intended here.
-          # shellcheck disable=SC2086
-          $PYTHON_INSTALL_CMD "django~=${{ matrix.django-version }}"
+          uv pip install "django~=${DJANGO_VERSION}.0"
+          # Fail rather than report a matrix leg that never ran on its Django.
+          uv run python -c "import django, os, sys; want = os.environ['DJANGO_VERSION']; got = '.'.join(map(str, django.VERSION[:2])); print(f'Django {django.__version__}'); sys.exit(0 if got == want else f'expected Django {want}, got {got}')"
 
       - name: Resolve Playwright version
         if: inputs.install-playwright
         id: playwright-version
-        run: echo "version=$(python -c 'import importlib.metadata; print(importlib.metadata.version(\"playwright\"))')" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(uv run python -c 'import importlib.metadata; print(importlib.metadata.version(\"playwright\"))')" >> "$GITHUB_OUTPUT"
 
       - name: Cache Playwright browsers
         if: inputs.install-playwright
@@ -103,16 +95,16 @@ jobs:
 
       - name: Install Playwright browsers
         if: inputs.install-playwright
-        run: playwright install --with-deps chromium
+        run: uv run playwright install --with-deps chromium
 
       - name: Run tests
         env:
           IS_COVERAGE_RUN: ${{ matrix.python-version == inputs.coverage-python-version && matrix.django-version == inputs.coverage-django-version }}
         run: |
           if [ "$IS_COVERAGE_RUN" = "true" ]; then
-            pytest --cov=${{ inputs.coverage-package }} --cov-report=xml
+            uv run pytest --cov=${{ inputs.coverage-package }} --cov-report=xml
           else
-            pytest
+            uv run pytest
           fi
 
       - name: Upload coverage to Codecov

@@ -4,12 +4,8 @@ name: Prepare Release
 # CHANGELOG section). Merging that PR is the release decision; the Tag Release
 # workflow then cuts the tag and GitHub Release from the merge commit.
 #
-# The token is not optional. Two things depend on it:
-#   - The re-pin step rewrites files under .github/workflows, and GitHub refuses
-#     those pushes from GITHUB_TOKEN whatever its `permissions:` block says —
-#     `workflows` is not a scope that block can grant.
-#   - A PR opened with GITHUB_TOKEN triggers no pull_request workflows, so
-#     required checks never report on the release PR.
+# The token is not optional: a PR opened with GITHUB_TOKEN triggers no
+# pull_request workflows, so required checks never report on the release PR.
 #
 # Dispatched here, RELEASE_TOKEN comes from the org secret of that name. Called
 # from another repository it cannot, because a reusable workflow sees only what
@@ -69,8 +65,8 @@ jobs:
             echo "::warning::RELEASE_TOKEN instead; release-token will be removed."
             exit 0
           fi
-          echo "::error::No release token resolved. This workflow rewrites files"
-          echo "::error::under .github/workflows, which GITHUB_TOKEN may never push."
+          echo "::error::No release token resolved. A release PR opened with"
+          echo "::error::GITHUB_TOKEN runs no checks, so it could never merge."
           echo "::error::Set the RELEASE_TOKEN org secret, or pass it as RELEASE_TOKEN"
           echo "::error::when calling this workflow from another repository."
           exit 1
@@ -80,21 +76,22 @@ jobs:
         with:
           token: ${{ secrets.RELEASE_TOKEN || secrets.release-token }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: '3.13'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.2.0
 
-      - name: Install Poetry
-        run: pipx install poetry
-
+      # `uv version` updates the project's own entry in uv.lock along with
+      # pyproject.toml. Editing pyproject.toml alone leaves the lockfile out of
+      # date, and every `uv sync --locked` on the release commit then fails.
       - name: Bump version
         id: bump
         env:
           BUMP: ${{ inputs.bump }}
         run: |
-          poetry version "$BUMP"
-          VERSION="$(poetry version -s)"
+          case "$BUMP" in
+            major|minor|patch) uv version --bump "$BUMP" --no-sync ;;
+            *) uv version "$BUMP" --no-sync ;;
+          esac
+          VERSION="$(uv version --short)"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Guard against existing release
@@ -110,73 +107,6 @@ jobs:
             echo "::error::Branch release/v$VERSION already exists — close or merge the open release PR first."
             exit 1
           fi
-
-      - name: Re-pin the internal action references to this release
-        # Self-reference rewrite: only this repo's own release carries an
-        # internal action@vX to re-pin. Called from a downstream repo
-        # (github.repository is the CALLER in a reusable workflow), this step
-        # must not run — it would rewrite the caller's OWN pins to the caller's
-        # version number instead of leaving them alone, silently downgrading
-        # them to whatever tag happens to share that number (django-mvp/shared#41).
-        #
-        # These files call the action by owner/repo/path@ref rather than a
-        # local path, because `uses: ./...` inside a reusable workflow resolves
-        # against the CALLING repo's checkout, not this one. The references must
-        # track this repo's own release tag or a downstream caller pinned to a
-        # tag still transitively floats on @main (django-mvp/shared#24). The tag
-        # this bump produces does not exist yet, but it will point at this exact
-        # commit once Tag Release runs — the self-reference is only ever read by
-        # a caller that has already resolved this tag, by which time it exists.
-        #
-        # Find the files rather than listing them. The hand-written list missed
-        # docs.yml and publish-pypi/action.yml, which floated on @main across
-        # three releases while the two named files were pinned correctly.
-        #
-        # The action name is matched as a wildcard rather than spelled out, for
-        # the same reason the file list is discovered rather than written down.
-        # The pattern named setup-poetry alone until a second setup action was
-        # added, at which point every reference to the new one would have shipped
-        # on whatever ref it was written with, invisibly, and the check below
-        # would have passed because it was looking for the other name.
-        #
-        # This file is excluded because it quotes the reference as a search
-        # pattern. Without that, the step rewrites its own patterns and the
-        # check below reports its own source as unpinned.
-        if: github.repository == 'django-mvp/shared'
-        env:
-          VERSION: ${{ steps.bump.outputs.version }}
-        run: |
-          set -euo pipefail
-          PATTERN='django-mvp/shared/\.github/actions/[A-Za-z0-9_-]+'
-          mapfile -t FILES < <(grep -rlE "${PATTERN}@" .github/ --exclude=prepare-release.yml)
-          if [ "${#FILES[@]}" -eq 0 ]; then
-            echo "::error::No internal action references found. The reference"
-            echo "::error::format changed and this step is no longer re-pinning"
-            echo "::error::anything."
-            exit 1
-          fi
-          printf 'Re-pinning %s file(s):\n' "${#FILES[@]}"
-          printf '  %s\n' "${FILES[@]}"
-          sed -i -E "s#(${PATTERN})@[^[:space:]]+#\1@v${VERSION}#" "${FILES[@]}"
-
-      - name: Verify no internal action reference was left behind
-        # A missed file is invisible from downstream: the caller looks correctly
-        # pinned. Fail the release rather than ship a half-pinned tag.
-        if: github.repository == 'django-mvp/shared'
-        env:
-          VERSION: ${{ steps.bump.outputs.version }}
-        run: |
-          set -euo pipefail
-          PATTERN='django-mvp/shared/\.github/actions/[A-Za-z0-9_-]+'
-          STRAY="$(grep -rnE "${PATTERN}@" .github/ --exclude=prepare-release.yml \
-                   | grep -vE "@v${VERSION}\$" || true)"
-          if [ -n "$STRAY" ]; then
-            echo "::error::internal action references not pinned to v${VERSION}:"
-            echo "$STRAY"
-            exit 1
-          fi
-          echo "All internal action references pinned to v${VERSION}."
-          git diff --stat
 
       - name: Update changelog
         env:
@@ -198,7 +128,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "release/v$VERSION"
-          git add pyproject.toml .github
+          git add pyproject.toml uv.lock
           [ -f CHANGELOG.md ] && git add CHANGELOG.md
           git commit -m "chore: release v$VERSION"
           git push -u origin "release/v$VERSION"

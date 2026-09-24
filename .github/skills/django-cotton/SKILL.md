@@ -367,7 +367,7 @@ This skill provides a script to discover all available components. Use it to get
 
 ```bash
 # From project root
-poetry run python manage.py shell < .github/skills/django-cotton/scripts/discover_components.py
+uv run python manage.py shell < .github/skills/django-cotton/scripts/discover_components.py
 ```
 
 The script will:

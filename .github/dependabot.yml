@@ -1,6 +1,6 @@
 version: 2
 updates:
-  - package-ecosystem: "pip"
+  - package-ecosystem: "uv"
     directory: "/"
     schedule:
       interval: "weekly"
@@ -19,7 +19,13 @@ updates:
           - "*"
 
   - package-ecosystem: "github-actions"
-    directory: "/"
+    # "/" covers .github/workflows only. The composite actions under
+    # .github/actions/ are separate manifests, and without their own entry
+    # their pins were never updated: they sat a major version behind the
+    # workflows for months.
+    directories:
+      - "/"
+      - "/.github/actions/*"
     schedule:
       interval: "monthly"
       day: "monday"

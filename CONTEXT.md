@@ -14,8 +14,8 @@ projects that opt in. That set is not the same as the GitHub organization's memb
 - **Caller workflow** — the ~10-line workflow file in a downstream repo that does nothing
   but invoke a reusable workflow with repo-specific inputs. Its job names produce the
   prefixed status-check contexts (e.g. `call-build / Code Quality`).
-- **Composite action** — a reusable step sequence under `.github/actions/` (setup-poetry,
-  publish-pypi, update-changelog, auto-merge-dependabot) used by the reusable workflows.
+- **Composite action** — a reusable step sequence under `.github/actions/` (publish-pypi,
+  update-changelog, auto-merge-dependabot).
 - **Meta-package** — the installable `mvp-shared` package. It ships no runtime code (one
   empty module); its purpose is carrying the dependency bundles. *(Avoid: "library".)*
 - **Dependency bundle** — an optional-dependency extra of the meta-package (`dev`, `test`)

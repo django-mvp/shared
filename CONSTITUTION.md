@@ -11,8 +11,8 @@
 
 ### Article I — Test-First (as Validation-First)
 This repo has no test suite; the validation gate is its test. No change to workflows,
-bundles, or templates merges without the gate green (`poetry check --lock`, `poetry build`,
-`actionlint`). A behavioural change to a reusable workflow is exercised by a downstream
+bundles, or templates merges without the gate green (`uv lock --check`, `uv build`,
+`twine check`, `actionlint`). A behavioural change to a reusable workflow is exercised by a downstream
 repo's CI against the branch before the tag is cut — never shipped tag-first on faith.
 
 ### Article II — Simplicity
@@ -92,8 +92,10 @@ between the caller and the work is not.
 ### Article VIII — Interface stability
 The public API is: reusable-workflow names, inputs, outputs, and produced status-check
 contexts; composite-action names and inputs; the extras names (`dev`, `test`); and the
-template files. Breaking any of these requires a major-version tag and migration notes in
-the release; deprecations are announced one minor release before removal.
+template files. From 1.0, breaking any of these requires a major-version tag and migration
+notes in the release, and a deprecation is announced one minor release before the removal.
+Before 1.0, a minor release may break the interface, and the release carries migration
+notes in the README and in its release notes.
 
 ### Article IX — Tag & release discipline
 Downstream repos consume pin tags only; `@main` is never a supported reference. Every
@@ -123,10 +125,10 @@ this bundle, which is where the models, the strings and the tests live.
 ## Quality bar
 
 Read at plan and review; applies to every change.
-- `poetry check --lock` and `poetry build` pass; `actionlint` clean.
+- `uv lock --check`, `uv build` and `twine check` pass; `actionlint` clean.
 - Every interface change (Article VIII surface) updates README + release notes in the
   same PR.
-- Bundle changes re-lock (`poetry lock`) in the same PR.
+- Bundle changes re-lock (`uv lock`) in the same PR.
 
 **Package-specific** (this repo is `kind: package`, distributed by git tag — ADR 0001):
 - The meta-package builds and its metadata is valid.
@@ -142,4 +144,4 @@ Read at plan and review; applies to every change.
 
 ---
 
-**Version**: 1.1.0 | **Ratified**: 2026-07-21 | **Last Amended**: 2026-08-05
+**Version**: 1.2.0 | **Ratified**: 2026-07-21 | **Last Amended**: 2026-09-24

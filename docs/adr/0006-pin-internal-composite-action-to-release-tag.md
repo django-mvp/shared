@@ -1,6 +1,6 @@
 # ADR 0006 — Pin the internal setup-poetry reference to this repo's own release tag
 
-**Status:** Accepted (2026-08-12)
+**Status:** Superseded by ADR 0009 (2026-09-24)
 
 ## Context
 

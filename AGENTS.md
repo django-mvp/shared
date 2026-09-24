@@ -10,13 +10,15 @@ templates (pre-commit) that downstream repos copy. It ships no runtime code. See
 
 ## Stack & commands
 
-- **Stack:** Poetry-managed meta-package (Python >=3.12) + GitHub Actions workflows. No
-  runtime source, no test suite — validation replaces testing here.
-- **Install:** `poetry install`
-- **Validate lock:** `poetry check --lock`
-- **Build:** `poetry build`
+- **Stack:** uv-managed meta-package (Python >=3.12, hatchling build backend) + GitHub
+  Actions workflows. No runtime source, no test suite — validation replaces testing here.
+- **Install:** `uv sync`
+- **Validate lock:** `uv lock --check`
+- **Build:** `uv build`, then `uvx twine check dist/*`
 - **Lint workflows:** `actionlint` (over `.github/workflows/`)
-- **Re-lock after bundle edits:** `poetry lock`
+- **Re-lock after bundle edits:** `uv lock`
+- **Bump the version:** `uv version` — never edit `pyproject.toml` alone, because `uv.lock`
+  records the project's own version too
 
 ## Agent skills
 

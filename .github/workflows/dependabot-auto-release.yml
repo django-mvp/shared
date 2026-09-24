@@ -61,7 +61,7 @@ jobs:
           import tomllib
           with open("pyproject.toml", "rb") as f:
               data = tomllib.load(f)
-          print(data.get("project", {}).get("version") or data["tool"]["poetry"]["version"])
+          print(data["project"]["version"])
           EOF
           )"
 
@@ -90,6 +90,10 @@ jobs:
             echo "tag_exists_on_head=false"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Install uv
+        if: ${{ steps.next.outputs.tag_exists_on_head != 'true' }}
+        uses: astral-sh/setup-uv@v10.2.0
+
       - name: Bump pyproject version, commit and tag
         if: ${{ steps.next.outputs.tag_exists_on_head != 'true' }}
         shell: bash
@@ -99,27 +103,14 @@ jobs:
         run: |
           set -euo pipefail
 
-          python3 - "$VERSION" <<'EOF'
-          import re, sys
-
-          version = sys.argv[1]
-          with open("pyproject.toml") as f:
-              src = f.read()
-
-          pattern = re.compile(r'(?m)^(version = ")([^"]+)(")')
-          matches = pattern.findall(src)
-          if len(matches) != 1:
-              raise SystemExit(
-                  f"expected exactly one 'version = ' line in pyproject.toml, found {len(matches)}"
-              )
-
-          with open("pyproject.toml", "w") as f:
-              f.write(pattern.sub(rf'\g<1>{version}\g<3>', src))
-          EOF
+          # `uv version` moves the project's own entry in uv.lock with it. A
+          # pyproject-only edit would leave the lockfile stale and every
+          # `uv sync --locked` on the release commit failing.
+          uv version "$VERSION" --no-sync
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pyproject.toml
+          git add pyproject.toml uv.lock
           git commit -m "chore: release ${TAG}"
           git tag "$TAG"
 
