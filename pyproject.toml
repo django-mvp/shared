@@ -3,7 +3,7 @@
 name = "mvp-shared"
 description = "Shared development, docs and testing tools for the django-mvp org"
 license = "MIT"
-dynamic = ["version"]
+version = "0.4.0"
 readme = "README.md"
 authors = [{ name = "Sam", email = "samuel.scott.jennings@gmail.com" }]
 requires-python = '>=3.12,<4'
@@ -44,12 +44,15 @@ dev = [
 ]
 
 
-[tool.poetry]
-version = "0.4.0"
-include = ["LICENSE", "README.md"]
-requires-poetry = '>=2.0,<3.0'
-packages = [{ include = "mvp_shared" }]
+[tool.hatch.build.targets.wheel]
+packages = ["mvp_shared"]
+
+# Hatchling's default source distribution is the whole working tree. This keeps
+# it to the package, the readme and the licence.
+[tool.hatch.build.targets.sdist]
+include = ["mvp_shared", "README.md", "LICENSE"]
+exclude = [".gitignore"]
 
 [build-system]
-requires = ['poetry-core (>=2.0,<3.0)']
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"

@@ -1,6 +1,6 @@
 name: Tag Release
 
-# Step 2 of the family release flow: after a release PR merges, notice that the
+# Step 2 of the shared release flow: after a release PR merges, notice that the
 # project version has no matching tag and cut the tag + GitHub Release from the
 # merge commit. No-ops when the tag already exists (e.g. dependency-only
 # changes to pyproject.toml) or when the version has no CHANGELOG section — so
@@ -51,7 +51,7 @@ jobs:
           import tomllib
           with open("pyproject.toml", "rb") as f:
               data = tomllib.load(f)
-          version = data.get("project", {}).get("version") or data["tool"]["poetry"]["version"]
+          version = data["project"]["version"]
           print(version)
           EOF
           )"

@@ -8,7 +8,7 @@ This script finds all Cotton components from:
 - App-level component directories
 
 Usage:
-    poetry run python manage.py shell < .github/skills/django-cotton/scripts/discover_components.py
+    uv run python manage.py shell < .github/skills/django-cotton/scripts/discover_components.py
 
 Or from within Django shell:
     from pathlib import Path

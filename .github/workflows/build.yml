@@ -11,10 +11,20 @@ on:
         description: 'Python version to use for all build jobs'
         type: string
         default: '3.13'
+      uv-sync-args:
+        description: 'Extra args passed to uv sync, e.g. --extra dev'
+        type: string
+        default: ''
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  # Every job syncs the environment once, explicitly and with --locked. After
+  # that, `uv run` uses the environment as it stands instead of re-syncing it,
+  # so a tool installed into it for one job (pip-audit) stays put.
+  UV_NO_SYNC: "1"
 
 jobs:
   code-quality:
@@ -27,11 +37,17 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
-      - name: Set up Poetry env
-        uses: django-mvp/shared/.github/actions/setup-poetry@v0.4.1
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.2.0
         with:
           python-version: ${{ inputs.python-version }}
-          cache-key-suffix: code-quality
+          enable-cache: true
+          cache-suffix: code-quality
+
+      # --locked fails the job when uv.lock is out of date with pyproject.toml,
+      # which is the lockfile consistency check.
+      - name: Sync dependencies
+        run: uv sync --locked ${{ inputs.uv-sync-args }}
 
       - name: Load cached pre-commit
         uses: actions/cache@v6
@@ -39,11 +55,8 @@ jobs:
           path: ~/.cache/pre-commit
           key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
 
-      - name: Check Poetry lock file consistency
-        run: poetry check --lock
-
       - name: Run pre-commit checks
-        run: poetry run pre-commit run --all-files
+        run: uv run pre-commit run --all-files
 
   security:
     name: Security Scan
@@ -53,11 +66,15 @@ jobs:
       - name: Check out
         uses: actions/checkout@v7
 
-      - name: Set up Poetry env
-        uses: django-mvp/shared/.github/actions/setup-poetry@v0.4.1
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.2.0
         with:
           python-version: ${{ inputs.python-version }}
-          cache-key-suffix: security
+          enable-cache: true
+          cache-suffix: security
+
+      - name: Sync dependencies
+        run: uv sync --locked ${{ inputs.uv-sync-args }}
 
       - name: Run bandit security linter
         # This is a report, not a gate (ADR 0007): findings never fail the
@@ -66,9 +83,11 @@ jobs:
         # went unnoticed (django-mvp/shared#23). The `|| true` swallows only
         # bandit's own "issues found" exit code; the emitted artefact is
         # asserted on next, never a piped exit code.
-        run: |
-          pip install "bandit[toml]"
-          bandit -r ${{ inputs.source-dir }}/ -f json -o bandit-report.json || true
+        #
+        # bandit reads source files and needs nothing from the project
+        # environment, so it runs in a throwaway one rather than being added to
+        # the environment pip-audit is about to inspect.
+        run: uvx --from "bandit[toml]" bandit -r ${{ inputs.source-dir }}/ -f json -o bandit-report.json || true
 
       - name: Verify bandit report was produced
         run: |
@@ -85,13 +104,14 @@ jobs:
       - name: Run pip-audit for known vulnerabilities
         # pip-audit replaces safety (django-mvp/shared#23): safety 3.x needs an
         # authenticated account against its vulnerability database, which is
-        # the wrong shape for unattended CI. pip-audit needs none. It runs via
-        # `poetry run` so it audits the packages this job actually installed,
-        # not the runner's bare system interpreter; --local excludes anything
-        # outside that venv from the report.
+        # the wrong shape for unattended CI. pip-audit needs none. It is
+        # installed into, and run from, the project environment this job
+        # synced, so it audits the packages actually installed rather than the
+        # runner's bare system interpreter; --local excludes anything outside
+        # that environment from the report.
         run: |
-          poetry run pip install pip-audit
-          poetry run pip-audit --local --format json --output pip-audit-report.json --progress-spinner off || true
+          uv pip install pip-audit
+          uv run pip-audit --local --format json --output pip-audit-report.json --progress-spinner off || true
 
       - name: Verify pip-audit report was produced
         run: |
@@ -114,17 +134,22 @@ jobs:
       - name: Check out
         uses: actions/checkout@v7
 
-      - name: Set up Poetry env
-        uses: django-mvp/shared/.github/actions/setup-poetry@v0.4.1
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.2.0
         with:
           python-version: ${{ inputs.python-version }}
-          cache-key-suffix: package
+          enable-cache: true
+          cache-suffix: package
 
       - name: Build package
-        run: poetry build
+        run: uv build
 
+      # twine reads the built wheel and sdist metadata the way PyPI's upload
+      # endpoint does, including whether the rendered long description parses:
+      # a check on what actually ships rather than on the source that produced
+      # it. `uvx` runs it without adding twine to any bundle.
       - name: Check package metadata
-        run: poetry check
+        run: uvx twine check dist/*
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7

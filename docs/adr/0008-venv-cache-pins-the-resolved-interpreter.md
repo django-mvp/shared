@@ -1,6 +1,6 @@
 # ADR 0008 — The venv cache pins the resolved interpreter, and the dependency install is unconditional
 
-**Status:** Accepted (2026-08-12)
+**Status:** Superseded by ADR 0009 (2026-09-24)
 
 ## Context
 

@@ -50,12 +50,12 @@ myapp/db/fields.py            → tests/test_db/test_fields.py
 ## Running Tests
 
 ```bash
-poetry run pytest                          # all tests
-poetry run pytest tests/test_core/         # one subtree
-poetry run pytest -k "test_project"        # by name
-poetry run pytest -m slow                  # only slow-marked tests
-poetry run pytest --no-header -q           # quiet output
-poetry run pytest --cov=myapp --cov-report=html  # with coverage
+uv run pytest                          # all tests
+uv run pytest tests/test_core/         # one subtree
+uv run pytest -k "test_project"        # by name
+uv run pytest -m slow                  # only slow-marked tests
+uv run pytest --no-header -q           # quiet output
+uv run pytest --cov=myapp --cov-report=html  # with coverage
 ```
 
 ## Factories (factory-boy)
@@ -679,8 +679,8 @@ CACHES = {
 5. ✅ Mark DB-accessing tests with `@pytest.mark.django_db`
 6. ✅ Use Arrange-Act-Assert structure with blank line separation
 7. ✅ Write descriptive test names explaining what is tested
-8. ✅ Run `poetry run pytest <test_file>` to verify
-9. ✅ Check coverage: `poetry run pytest --cov=myapp --cov-report=html`
+8. ✅ Run `uv run pytest <test_file>` to verify
+9. ✅ Check coverage: `uv run pytest --cov=myapp --cov-report=html`
 10. ✅ Ensure coverage does not decrease
 
 ## Continuous Improvement

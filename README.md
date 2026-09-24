@@ -35,34 +35,82 @@ This repository exposes shared dependency bundles through optional extras:
 
 Use a tagged release instead of main so downstream environments are reproducible.
 
-### Poetry
+From v0.5.0 the workflows, the pre-commit template and the release flow here all assume
+the downstream repository is managed with [uv](https://docs.astral.sh/uv/): a
+`pyproject.toml` with standard `[project]` metadata, a committed `uv.lock`, and uv
+commands wherever a tool runs. A repository still on Poetry stays pinned to v0.4.x. See
+[Moving from Poetry](#moving-from-poetry) for what changes when it moves.
 
-Add both shared extras to a downstream project:
+### uv
 
-```bash
-poetry add --group dev "mvp-shared[dev,test]@git+https://github.com/django-mvp/shared.git@v0.1.0"
-```
-
-You can also add it directly in pyproject.toml:
+Add both shared extras as a development dependency group, pinned to a tag:
 
 ```toml
-[tool.poetry.group.dev.dependencies]
-mvp-shared = { git = "https://github.com/django-mvp/shared.git", tag = "v0.1.0", extras = ["dev", "test"] }
+[dependency-groups]
+dev = ["mvp-shared[dev,test]"]
+
+[tool.uv.sources]
+mvp-shared = { git = "https://github.com/django-mvp/shared.git", tag = "v0.5.0" }
 ```
+
+`uv sync` installs the `dev` group by default, so the whole toolchain arrives with it.
 
 ### pip
 
 Install directly from a tag:
 
 ```bash
-pip install "mvp-shared[dev,test] @ git+https://github.com/django-mvp/shared.git@v0.1.0"
+pip install "mvp-shared[dev,test] @ git+https://github.com/django-mvp/shared.git@v0.5.0"
 ```
 
 ### Recommended Update Flow
 
 1. Update and release this shared repo.
-2. Bump the tag used by each downstream project.
-3. Re-lock dependencies in each downstream project.
+2. Bump the tag in each downstream project's `[tool.uv.sources]` and its workflow callers.
+3. Run `uv lock` in each downstream project and commit `uv.lock`.
+
+### Moving from Poetry
+
+v0.5.0 removed Poetry support from everything here. A repository moving up from v0.4.x
+makes these changes in one pull request, because the workflows it calls at v0.5.0 expect
+all of them:
+
+- **`pyproject.toml`.** Move any remaining `[tool.poetry]` metadata into `[project]`, with
+  a static `version`. Turn `[tool.poetry.group.<name>.dependencies]` into
+  `[dependency-groups]`, and git or path dependencies into `[tool.uv.sources]`.
+  `[tool.poetry.scripts]` becomes `[project.scripts]` and `[tool.poetry.plugins]` becomes
+  `[project.entry-points]`.
+- **Build backend.** `poetry-core` goes. Use hatchling:
+
+  ```toml
+  [build-system]
+  requires = ["hatchling"]
+  build-backend = "hatchling.build"
+
+  [tool.hatch.build.targets.wheel]
+  packages = ["<package_dir>"]
+
+  [tool.hatch.build.targets.sdist]
+  include = ["<package_dir>", "README.md", "LICENSE"]
+  exclude = [".gitignore"]
+  ```
+
+  Set the sdist `include`. `poetry-core` published only the package directory, the readme
+  and the licence. Hatchling defaults to publishing the whole working tree, so without it
+  the source distribution that reaches PyPI carries the test suite, any demonstration
+  project, documentation and CI configuration. The wheel is built from the declared
+  packages either way.
+- **Lockfile.** Delete `poetry.lock`, run `uv lock`, commit `uv.lock`. Expect some
+  dependency versions to move: uv resolves afresh.
+- **Workflow callers.** Repin to v0.5.0. Remove `poetry-install-args`, and pass
+  `uv-sync-args` only if the repository needs something beyond the default groups.
+- **Pre-commit.** Re-copy `templates/pre-commit-config.yaml`. Its hooks run through
+  `uv run`, and `uv-lock` replaces `poetry-check` and `poetry-lock`.
+- **Dependabot.** Change the Python entry's `package-ecosystem` from `pip` to `uv`, so
+  updates rewrite `uv.lock`.
+- **Versioning.** Bump the version with `uv version`, never by editing `pyproject.toml`
+  alone. `uv.lock` records the project's own version, and a lockfile left behind makes
+  every `uv sync --locked` fail. The release workflows here already do this.
 
 ## Release Flow
 
@@ -72,8 +120,8 @@ dispatch, then merge.
 
 1. **Prepare Release** (`.github/workflows/prepare-release.yml`, `workflow_dispatch`):
    choose a bump level (patch / minor / major, or an explicit version). It bumps the
-   version with Poetry, opens a `CHANGELOG.md` section when one exists, and opens a
-   `release/vX.Y.Z` PR. Merging that PR **is** the release decision.
+   version with `uv version`, which updates `pyproject.toml` and `uv.lock` together, opens a
+   `CHANGELOG.md` section when one exists, and opens a `release/vX.Y.Z` PR. Merging that PR **is** the release decision.
 2. **Tag Release** (`.github/workflows/tag-release.yml`, on push to main): notices the
    project version has no matching tag and creates the `vX.Y.Z` tag plus the GitHub
    Release from the merge commit. Dependency-only pyproject changes no-op (tag exists).
@@ -82,10 +130,9 @@ Both are also `workflow_call`-reusable so downstream repositories can adopt the 
 with thin callers.
 
 Token note: these workflows need a personal access token, held as the `RELEASE_TOKEN` org
-secret. Prepare Release cannot run without one, because it rewrites files under
-`.github/workflows` and GitHub refuses those pushes from `GITHUB_TOKEN`. Two further
-limits lift with it: the release PR triggers CI, which it does not when opened by
-`GITHUB_TOKEN`, and the created release fires `release`-event workflows.
+secret. Prepare Release refuses to run without one, because a release PR opened by
+`GITHUB_TOKEN` triggers no CI, so its required checks never report and it can never merge.
+The token also lets the created release fire `release`-event workflows.
 
 Downstream callers pass it explicitly, because a reusable workflow sees only the secrets
 its caller maps in:
@@ -102,11 +149,12 @@ used, and will be removed.
 ## Pre-commit Template
 
 `templates/pre-commit-config.yaml` is the hook set every downstream repository runs: ruff
-(lint + format), mypy, and deptry running as local hooks inside the Poetry environment,
-with versions supplied by the `dev` bundle. Copy it to the repository root as
-`.pre-commit-config.yaml`, replace the package-directory placeholder, and enable ruff's
-`UP` rules in `[tool.ruff.lint]` (they replace pyupgrade; `ruff format` replaces black).
-The template's comments explain the serialised mypy hook and what runs where in CI.
+(lint + format), mypy, and deptry running as local hooks through `uv run`, with versions
+supplied by the `dev` bundle, plus `uv-lock` to keep `uv.lock` in step with
+`pyproject.toml`. Copy it to the repository root as `.pre-commit-config.yaml`, replace the
+package-directory placeholder, and enable ruff's `UP` rules in `[tool.ruff.lint]` (they
+replace pyupgrade; `ruff format` replaces black). The template's comments explain the
+serialised mypy hook and what runs where in CI.
 
 ## Shared Ruff Configuration
 
@@ -149,6 +197,22 @@ defaults to 88 (matching Black), and target-version is inferred from the package
 
 Downstream repositories can call these workflows directly from their own workflow files.
 
+### How the workflows run
+
+`build.yml`, `tests.yml` and `docs.yml` install uv with
+[`astral-sh/setup-uv`](https://github.com/astral-sh/setup-uv), which also provides the
+Python interpreter, then build the environment with `uv sync --locked`. `--locked` fails
+the job when `uv.lock` is out of date with `pyproject.toml`, rather than re-resolving and
+testing whatever that produces. That sync is the lockfile consistency check. Every tool
+after it runs through `uv run` against the environment as synced.
+
+The uv version is not pinned here. `setup-uv` uses the repository's
+[`required-version`](https://docs.astral.sh/uv/reference/settings/#required-version) when
+it sets one, and the latest release otherwise.
+
+Package metadata is checked with `twine check` over the built wheel and sdist, which reads
+it the way PyPI's upload endpoint does.
+
 ### Build
 
 Reusable workflow: .github/workflows/build.yml
@@ -160,6 +224,7 @@ Required inputs:
 Optional inputs:
 
 - python-version (default: 3.13)
+- uv-sync-args (default: empty)
 
 Example caller workflow:
 
@@ -173,7 +238,7 @@ on:
 
 jobs:
   build:
-    uses: django-mvp/shared/.github/workflows/build.yml@v0.1.0
+    uses: django-mvp/shared/.github/workflows/build.yml@v0.5.0
     with:
       source-dir: mvp
       python-version: "3.13"
@@ -191,10 +256,14 @@ Optional inputs:
 
 - python-versions (default: ["3.12", "3.13"])
 - django-versions (default: ["5.2", "6.0"])
-- poetry-install-args (default: --with test)
+- uv-sync-args (default: empty)
 - coverage-python-version (default: 3.13)
 - coverage-django-version (default: 5.2)
 - install-playwright (default: false)
+
+Each matrix leg installs the latest patch release of its Django series over the locked
+environment and fails if the Django it then imports is not that series, so a leg labelled
+6.0 cannot quietly run on 6.1.
 
 Example caller workflow:
 
@@ -208,13 +277,12 @@ on:
 
 jobs:
   tests:
-    uses: django-mvp/shared/.github/workflows/tests.yml@v0.1.0
+    uses: django-mvp/shared/.github/workflows/tests.yml@v0.5.0
     secrets: inherit
     with:
       coverage-package: mvp
       python-versions: '["3.12", "3.13"]'
       django-versions: '["5.2", "6.0"]'
-      poetry-install-args: "--with test"
 ```
 
 ### Docs Deployment
@@ -224,6 +292,7 @@ Reusable workflow: .github/workflows/docs.yml
 Optional inputs:
 
 - python-version (default: 3.13)
+- uv-sync-args (default: empty)
 
 Example caller workflow:
 
@@ -236,7 +305,7 @@ on:
 
 jobs:
   docs:
-    uses: django-mvp/shared/.github/workflows/docs.yml@v0.1.0
+    uses: django-mvp/shared/.github/workflows/docs.yml@v0.5.0
     with:
       python-version: "3.13"
 ```
@@ -267,13 +336,33 @@ on:
 jobs:
   release:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    uses: django-mvp/shared/.github/workflows/release.yml@v0.1.0
+    uses: django-mvp/shared/.github/workflows/release.yml@v0.5.0
     secrets: inherit
 ```
+
+## Composite Actions
+
+### publish-pypi
+
+Composite action: .github/actions/publish-pypi
+
+Builds the package with `uv build` and publishes it to PyPI through trusted publishing. It
+has to be called from the repository's own top-level workflow, not from a reusable one, so
+that the workflow reference in the OIDC token matches the trusted publisher configured on
+PyPI.
+
+Required inputs:
+
+- ref: the git ref to check out and build
+
+Optional inputs:
+
+- python-version (default: 3.13)
+- skip-existing (default: false): skip the upload when this version is already on PyPI
 
 ## Version Pinning Recommendation
 
 When referencing reusable workflows from downstream projects, pin to a tag instead of main:
 
-- Recommended: @v0.1.0
+- Recommended: @v0.5.0
 - Avoid for production stability: @main
