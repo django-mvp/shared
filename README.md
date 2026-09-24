@@ -50,7 +50,7 @@ Add both shared extras as a development dependency group, pinned to a tag:
 dev = ["mvp-shared[dev,test]"]
 
 [tool.uv.sources]
-mvp-shared = { git = "https://github.com/django-mvp/shared.git", tag = "v0.5.0" }
+mvp-shared = { git = "https://github.com/django-mvp/shared.git", tag = "v0.6.0" }
 ```
 
 `uv sync` installs the `dev` group by default, so the whole toolchain arrives with it.
@@ -60,7 +60,7 @@ mvp-shared = { git = "https://github.com/django-mvp/shared.git", tag = "v0.5.0" 
 Install directly from a tag:
 
 ```bash
-pip install "mvp-shared[dev,test] @ git+https://github.com/django-mvp/shared.git@v0.5.0"
+pip install "mvp-shared[dev,test] @ git+https://github.com/django-mvp/shared.git@v0.6.0"
 ```
 
 ### Recommended Update Flow
@@ -103,7 +103,8 @@ all of them:
   it.
 - **Lockfile.** Delete `poetry.lock`, run `uv lock`, commit `uv.lock`. Expect some
   dependency versions to move: uv resolves afresh.
-- **Workflow callers.** Repin to v0.5.0. Remove `poetry-install-args`, and pass
+- **Workflow callers.** Repin to the latest release. Remove `poetry-install-args`, and remove
+  `django-versions` too when it only repeats the default. Pass
   `uv-sync-args` only if the repository needs something beyond the default groups.
 - **Pre-commit.** Re-copy `templates/pre-commit-config.yaml`. Its hooks run through
   `uv run`, and `uv-lock` replaces `poetry-check` and `poetry-lock`.
@@ -239,7 +240,7 @@ on:
 
 jobs:
   build:
-    uses: django-mvp/shared/.github/workflows/build.yml@v0.5.0
+    uses: django-mvp/shared/.github/workflows/build.yml@v0.6.0
     with:
       source-dir: mvp
       python-version: "3.13"
@@ -256,7 +257,7 @@ Required inputs:
 Optional inputs:
 
 - python-versions (default: ["3.12", "3.13"])
-- django-versions (default: ["5.2", "6.0"])
+- django-versions (default: ["5.2", "6.0", "6.1"])
 - uv-sync-args (default: empty)
 - coverage-python-version (default: 3.13)
 - coverage-django-version (default: 5.2)
@@ -265,6 +266,10 @@ Optional inputs:
 Each matrix leg installs the latest patch release of its Django series over the locked
 environment and fails if the Django it then imports is not that series, so a leg labelled
 6.0 cannot quietly run on 6.1.
+
+The `django-versions` default is every Django release currently supported upstream, and it
+moves with them. Leave it unset to keep testing against that set as it changes. Pass it only
+to test a deliberately different set, for example a project that deploys one release.
 
 Example caller workflow:
 
@@ -278,12 +283,10 @@ on:
 
 jobs:
   tests:
-    uses: django-mvp/shared/.github/workflows/tests.yml@v0.5.0
+    uses: django-mvp/shared/.github/workflows/tests.yml@v0.6.0
     secrets: inherit
     with:
       coverage-package: mvp
-      python-versions: '["3.12", "3.13"]'
-      django-versions: '["5.2", "6.0"]'
 ```
 
 ### Docs Deployment
@@ -306,7 +309,7 @@ on:
 
 jobs:
   docs:
-    uses: django-mvp/shared/.github/workflows/docs.yml@v0.5.0
+    uses: django-mvp/shared/.github/workflows/docs.yml@v0.6.0
     with:
       python-version: "3.13"
 ```
@@ -337,7 +340,7 @@ on:
 jobs:
   release:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    uses: django-mvp/shared/.github/workflows/release.yml@v0.5.0
+    uses: django-mvp/shared/.github/workflows/release.yml@v0.6.0
     secrets: inherit
 ```
 
@@ -365,5 +368,5 @@ Optional inputs:
 
 When referencing reusable workflows from downstream projects, pin to a tag instead of main:
 
-- Recommended: @v0.5.0
+- Recommended: @v0.6.0
 - Avoid for production stability: @main
