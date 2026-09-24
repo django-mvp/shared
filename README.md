@@ -92,14 +92,15 @@ all of them:
 
   [tool.hatch.build.targets.sdist]
   include = ["<package_dir>", "README.md", "LICENSE"]
-  exclude = [".gitignore"]
   ```
 
   Set the sdist `include`. `poetry-core` published only the package directory, the readme
   and the licence. Hatchling defaults to publishing the whole working tree, so without it
   the source distribution that reaches PyPI carries the test suite, any demonstration
   project, documentation and CI configuration. The wheel is built from the declared
-  packages either way.
+  packages either way. Hatchling always adds the repository's `.gitignore` to the source
+  distribution, so that a build from it leaves out the same files, and no setting removes
+  it.
 - **Lockfile.** Delete `poetry.lock`, run `uv lock`, commit `uv.lock`. Expect some
   dependency versions to move: uv resolves afresh.
 - **Workflow callers.** Repin to v0.5.0. Remove `poetry-install-args`, and pass
