@@ -7,7 +7,7 @@ This repository provides:
 - A single shared package for dev and test dependency bundles.
 - Reusable CI workflows for build, test matrix, docs deploy, and release.
 - Composite actions used by those workflows.
-- A pre-commit template every downstream repository copies.
+- Pre-commit templates every downstream repository copies, one per package manager.
 - A base ruff configuration every downstream repository copies and extends.
 
 ## Scope & philosophy
@@ -101,12 +101,21 @@ used, and will be removed.
 
 ## Pre-commit Template
 
-`templates/pre-commit-config.yaml` is the hook set every downstream repository runs: ruff
-(lint + format), mypy, and deptry running as local hooks inside the Poetry environment,
-with versions supplied by the `dev` bundle. Copy it to the repository root as
-`.pre-commit-config.yaml`, replace the package-directory placeholder, and enable ruff's
-`UP` rules in `[tool.ruff.lint]` (they replace pyupgrade; `ruff format` replaces black).
-The template's comments explain the serialised mypy hook and what runs where in CI.
+There are two templates carrying the hook set every downstream repository runs — ruff
+(lint + format), mypy and deptry running as local hooks inside the project environment,
+with versions supplied by the `dev` bundle. Copy the one matching the `package-manager`
+input the repository passes to the shared workflows:
+
+| Template | For repositories using | Runs tools via | Lockfile hook |
+|---|---|---|---|
+| `templates/pre-commit-config.yaml` | Poetry | `poetry run` | `poetry-check`, `poetry-lock` |
+| `templates/pre-commit-config-uv.yaml` | uv | `uv run` | `uv-lock` |
+
+Copy it to the repository root as `.pre-commit-config.yaml`, replace the
+package-directory placeholder, and enable ruff's `UP` rules in `[tool.ruff.lint]` (they
+replace pyupgrade; `ruff format` replaces black). The templates' comments explain the
+serialised mypy hook and what runs where in CI. A hook added to one is added to the
+other.
 
 ## Shared Ruff Configuration
 
@@ -172,6 +181,21 @@ Two checks differ, because the tools do:
 - **Package metadata.** `poetry check` validates the source `pyproject.toml`. uv has no
   equivalent, so the uv track runs `twine check` over the built wheel and sdist instead,
   which reads the metadata the way PyPI's upload endpoint does.
+
+A repository moving to uv also changes build backend, since `poetry-core` is Poetry's.
+One thing to set explicitly when it does:
+
+```toml
+[tool.hatch.build.targets.sdist]
+include = ["<package_dir>", "README.md", "LICENSE"]
+exclude = [".gitignore"]
+```
+
+`poetry-core` published only the package directory, the readme and the licence. Hatchling
+defaults to publishing the whole working tree, so without this the source distribution
+that reaches PyPI carries the test suite, the demonstration project, documentation, CI
+configuration and anything else in the repository. The wheel is unaffected — it is built
+from the declared packages either way.
 
 ### Build
 
