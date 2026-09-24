@@ -12,9 +12,9 @@ on:
         type: string
         default: '["3.12", "3.13"]'
       django-versions:
-        description: 'JSON array of Django versions to test against, e.g. ["4.2","5.2"]'
+        description: 'JSON array of Django versions to test against, e.g. ["5.2","6.1"]. Leave unset to follow the supported releases as this default moves'
         type: string
-        default: '["5.2", "6.0"]'
+        default: '["5.2", "6.0", "6.1"]'
       uv-sync-args:
         description: 'Extra args passed to uv sync, e.g. --extra test'
         type: string
