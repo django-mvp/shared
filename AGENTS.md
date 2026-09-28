@@ -43,11 +43,11 @@ Required status checks (exact names): `["Validate Package", "Lint Workflows"]`.
 Both come from `.github/workflows/validate.yml` on pull requests. The reusable workflows
 in this repo are *called by downstream repos* and produce no checks here.
 
-## Engineering org
+## Standards
 
-This repo is operated by an autonomous engineering pipeline: feature work runs
-spec→plan→tasks→implement→review→PR through org-side tooling; `specs/NNN-slug/`
-directories are generated per feature. Constitution: `CONSTITUTION.md`.
+The rules every change meets are in `CONSTITUTION.md`, with the testing and code
+documentation rules in `docs/contributing/standards/`. Feature work that needs a
+specification keeps it under `specs/NNN-slug/`.
 
 **Change discipline specific to this repo:** every change lands via PR behind the
 validation gate, becomes active downstream only when a new pin tag is released, and

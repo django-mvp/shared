@@ -1,19 +1,12 @@
 # mvp-shared Constitution
 
-<!-- Authored at org onboarding (2026-07-21) from the constitution template shared across
-     these repositories. This repo has no runtime code or test suite, so the core
-     articles are kept with their meaning mapped
-     onto workflows/bundles/templates where noted. Changes go through the constitution
-     pathway (human-gated), never mid-feature. Read at the Constitution Check in /plan and
-     by reviewers. -->
+<!-- Changes go through a human-gated amendment, never in the middle of a feature. -->
 
-## Core articles (org defaults)
+## Core articles
 
-### Article I — Test-First (as Validation-First)
-This repo has no test suite; the validation gate is its test. No change to workflows,
-bundles, or templates merges without the gate green (`uv lock --check`, `uv build`,
-`twine check`, `actionlint`). A behavioural change to a reusable workflow is exercised by a downstream
-repo's CI against the branch before the tag is cut — never shipped tag-first on faith.
+### Article I — Testing
+Every change follows [`docs/contributing/standards/testing.md`](docs/contributing/standards/testing.md): what gets a test
+and what does not, the test-first cycle, test structure and fixtures, and the coverage floors.
 
 ### Article II — Simplicity
 Start with the simplest design that satisfies the need. This repo is deliberately thin: an
@@ -42,10 +35,12 @@ workflows are never fast-lane work.
 
 ### Article VI — Documentation
 Every reusable-workflow input/output, composite-action input, extras bundle, and template
-is documented in the README in the same PR that changes it. As a package, the README
-follows the README standard used across these repositories: a one-line description kept
-identical to the package metadata summary, a Scope & philosophy section, consumption
-instructions, and absolute URLs.
+is documented in the README, and recorded in `CHANGELOG.md`, in the same PR that changes it.
+Docstrings and code comments follow
+[`docs/contributing/standards/code-documentation.md`](docs/contributing/standards/code-documentation.md).
+As a package, the README follows the README standard used across these repositories: a
+one-line description kept identical to the package metadata summary, a Scope & philosophy
+section, consumption instructions, and absolute URLs.
 
 ### Article VII — Dependency discipline
 The bundles ARE the shared dependency policy — additions here land in every repo. A new
@@ -111,13 +106,12 @@ or vice versa without cleanup) does not merge.
 ## Articles not adopted
 
 This repository ships no Django application code and carries no test suite of its own — it is the
-dependency bundle and the reusable workflow library that the packages depend on. Three articles in
+dependency bundle and the reusable workflow library that the packages depend on. Two articles in
 the shared template therefore have no subject here. They are recorded rather than left silently
 missing, and each becomes live if this repository ever ships Django code.
 
 - Internationalization
 - Data-model conventions (Django)
-- Test structure & fixtures (Django)
 
 The standards themselves are not weakened by this: they are enforced in the packages that consume
 this bundle, which is where the models, the strings and the tests live.
@@ -126,8 +120,7 @@ this bundle, which is where the models, the strings and the tests live.
 
 Read at plan and review; applies to every change.
 - `uv lock --check`, `uv build` and `twine check` pass; `actionlint` clean.
-- Every interface change (Article VIII surface) updates README + release notes in the
-  same PR.
+- Every interface change (Article VIII surface) updates README + CHANGELOG in the same PR.
 - Bundle changes re-lock (`uv lock`) in the same PR.
 
 **Package-specific** (this repo is `kind: package`, distributed by git tag — ADR 0001):
@@ -137,11 +130,11 @@ Read at plan and review; applies to every change.
 
 ## Non-negotiables
 
-- One PR per feature; Sam merges; the org never merges.
-- Machine verification gates every stage exit; no LLM judgment can override a red gate.
+- The validation checks pass before a change merges. Nobody overrides a red check.
+- The default branch requires one approval, and the author of a change never approves it.
 - Dependabot auto-merge is permitted only while the ruleset's required checks include the
   validation gate (ADR 0003).
 
 ---
 
-**Version**: 1.2.0 | **Ratified**: 2026-07-21 | **Last Amended**: 2026-09-24
+**Version**: 2.0.0 | **Ratified**: 2026-07-21 | **Last Amended**: 2026-09-28
