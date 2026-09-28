@@ -1,5 +1,8 @@
 # MVP Shared
 
+[![Validate](https://github.com/django-mvp/shared/actions/workflows/validate.yml/badge.svg)](https://github.com/django-mvp/shared/actions/workflows/validate.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/django-mvp/shared/blob/main/LICENSE)
+
 Shared tooling and reusable GitHub Actions workflows for downstream django-mvp repositories.
 
 This repository provides:
@@ -25,6 +28,25 @@ downstream repository needs belongs in that repository.
 When choices collide: reproducibility beats convenience (pin tags, never `main`), one
 standard applied identically in every downstream repository beats per-repo flexibility,
 and automation is only as trusted as the validation gating it.
+
+## Contents
+
+- [Requirements](#requirements)
+- [Use In Downstream Projects](#use-in-downstream-projects)
+- [Release Flow](#release-flow)
+- [Pre-commit Template](#pre-commit-template)
+- [Shared Ruff Configuration](#shared-ruff-configuration)
+- [Reusable Workflows](#reusable-workflows)
+- [Composite Actions](#composite-actions)
+- [Version Pinning Recommendation](#version-pinning-recommendation)
+- [Contributing](#contributing)
+- [Changelog](#changelog)
+- [License](#license)
+
+## Requirements
+
+A downstream repository needs Python 3.12 or later and, from v0.5.0, a project managed
+with [uv](https://docs.astral.sh/uv/).
 
 ## Use In Downstream Projects
 
@@ -68,6 +90,18 @@ pip install "mvp-shared[dev,test] @ git+https://github.com/django-mvp/shared.git
 1. Update and release this shared repo.
 2. Bump the tag in each downstream project's `[tool.uv.sources]` and its workflow callers.
 3. Run `uv lock` in each downstream project and commit `uv.lock`.
+
+### Upgrading past v0.6.0
+
+The next release changes three things a downstream repository has to act on:
+
+- `django-coverage-plugin` is no longer in the `test` bundle. Remove
+  `django_coverage_plugin` from the `plugins` list in the repository's coverage settings.
+- The base ruff configuration turns on the docstring rules described under
+  [Shared Ruff Configuration](#shared-ruff-configuration). Re-copy `ruff-base.toml`, and
+  rename a `[tool.ruff.lint.per-file-ignores]` table in `pyproject.toml` to
+  `[tool.ruff.lint.extend-per-file-ignores]`.
+- Re-copy `templates/pre-commit-config.yaml` to pick up the pydoclint hook.
 
 ### Moving from Poetry
 
@@ -158,12 +192,17 @@ used, and will be removed.
 ## Pre-commit Template
 
 `templates/pre-commit-config.yaml` is the hook set every downstream repository runs: ruff
-(lint + format), mypy, and deptry running as local hooks through `uv run`, with versions
-supplied by the `dev` bundle, plus `uv-lock` to keep `uv.lock` in step with
+(lint + format), mypy, deptry and pydoclint running as local hooks through `uv run`, with
+versions supplied by the `dev` bundle, plus `uv-lock` to keep `uv.lock` in step with
 `pyproject.toml`. Copy it to the repository root as `.pre-commit-config.yaml`, replace the
 package-directory placeholder, and enable ruff's `UP` rules in `[tool.ruff.lint]` (they
 replace pyupgrade; `ruff format` replaces black). The template's comments explain the
 serialised mypy hook and what runs where in CI.
+
+The pydoclint hook checks that each docstring's `Args:`, `Returns:` and `Raises:` sections
+match the function's signature and body, in the Google style. It skips one-line docstrings,
+so an override of a framework method can keep a one-line summary, and it leaves type hints
+to the signature rather than the docstring. Tests and migrations are excluded.
 
 ## Shared Ruff Configuration
 
@@ -181,9 +220,19 @@ extend = "ruff-base.toml"
 [tool.ruff.lint]
 extend-ignore = []  # package-specific additions, if any
 
-[tool.ruff.lint.per-file-ignores]
+[tool.ruff.lint.extend-per-file-ignores]
 "tests/*" = ["S101"]  # asserts are the point of a test
 ```
+
+Use `extend-per-file-ignores` for a package's own carve-outs, not `per-file-ignores`. A
+`per-file-ignores` table in `pyproject.toml` replaces the one in the base file rather than
+adding to it, so the base file's exemptions for tests and migrations would stop applying.
+
+The base selects ruff's pydocstyle rules (`D`) with the Google convention, so every module,
+class, function and method needs a docstring in that style. Two rules are off: `D107`,
+because constructor arguments are documented in the class docstring, and `D106`, for a
+model's or form's inner `Meta` class. Tests, migrations and `conftest.py` files are exempt
+from all `D` rules.
 
 This split is the standard, and the filename is part of it: the base config under a name
 ruff does **not** auto-discover, and the package's own settings in `pyproject.toml`. Do not
@@ -196,7 +245,8 @@ takes precedence over `pyproject.toml`. Confirmed against ruff 0.15.22.
 
 Once extending, a package's own `[tool.ruff]` holds only its remainder: additional ignored
 rules under `[tool.ruff.lint] extend-ignore`, additional excluded paths under
-`extend-exclude`, per-file carve-outs for tests and examples, and any
+`extend-exclude`, per-file carve-outs for tests and examples under
+`extend-per-file-ignores`, and any
 `[tool.ruff.format]` keys that differ from the shared ones — never a restatement of the
 shared rule set. `line-length` and `target-version` stay unset in both files: line length
 defaults to 88 (matching Black), and target-version is inferred from the package's own
@@ -377,3 +427,18 @@ When referencing reusable workflows from downstream projects, pin to a tag inste
 
 - Recommended: @v0.6.0
 - Avoid for production stability: @main
+
+## Contributing
+
+Every change follows [`CONSTITUTION.md`](https://github.com/django-mvp/shared/blob/main/CONSTITUTION.md), with the rules for tests
+and code documentation in
+[`docs/contributing/standards/`](https://github.com/django-mvp/shared/blob/main/docs/contributing/standards). Open an issue before
+changing a workflow, a bundle or a template, and name the downstream surface it affects.
+
+## Changelog
+
+Changes are recorded in [`CHANGELOG.md`](https://github.com/django-mvp/shared/blob/main/CHANGELOG.md).
+
+## License
+
+MIT. See [`LICENSE`](https://github.com/django-mvp/shared/blob/main/LICENSE).

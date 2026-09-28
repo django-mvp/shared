@@ -1,0 +1,12 @@
+# Floors, not a ratchet: 100% fails a PR over one unreachable defensive branch.
+# The 1% threshold absorbs rounding and small, justified dips.
+coverage:
+  status:
+    project:
+      default:
+        target: 90%
+        threshold: 1%
+    patch:
+      default:
+        target: 85%
+        threshold: 1%
