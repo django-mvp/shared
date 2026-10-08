@@ -27,3 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `django-coverage-plugin` from the `test` bundle. Templates are not measured for
   coverage. A package that enables the plugin in its own coverage configuration has to
   remove that setting when it moves to this release.
+
+### Fixed
+
+- The reusable tests workflow now reads the installed Playwright version correctly. A
+  quoting error left it empty, so the browser cache was keyed `playwright-<os>-` and was
+  never refreshed when Playwright was upgraded. The step now fails if the version cannot
+  be read.

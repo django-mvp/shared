@@ -84,7 +84,11 @@ jobs:
       - name: Resolve Playwright version
         if: inputs.install-playwright
         id: playwright-version
-        run: echo "version=$(uv run python -c 'import importlib.metadata; print(importlib.metadata.version(\"playwright\"))')" >> "$GITHUB_OUTPUT"
+        run: |
+          # Assigned on its own line so a failing lookup fails the step, rather
+          # than leaving the browser cache keyed without a Playwright version.
+          version="$(uv run python -c "import importlib.metadata; print(importlib.metadata.version('playwright'))")"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
 
       - name: Cache Playwright browsers
         if: inputs.install-playwright
