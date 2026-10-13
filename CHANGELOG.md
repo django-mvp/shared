@@ -15,9 +15,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `pydoclint` in the `dev` bundle, and a `pydoclint` hook in
   `templates/pre-commit-config.yaml` that checks docstring sections against each
   signature.
+- `parallel` and `timeout-minutes` inputs on the reusable tests workflow.
 
 ### Changed
 
+- The reusable tests workflow runs pytest in parallel, with one pytest-xdist worker per
+  logical core (`-n logical`), on every matrix leg including the coverage one. A repository without
+  pytest-xdist installed still runs serially. A suite that only passes when run serially
+  sets the new `parallel: false` input.
+- The reusable tests workflow cancels a test job after 10 minutes instead of 20. A suite
+  that needs longer sets the new `timeout-minutes` input.
 - A package's own per-file ignores now go under
   `[tool.ruff.lint.extend-per-file-ignores]`. A `[tool.ruff.lint.per-file-ignores]` table
   replaces the base file's table, so the docstring exemptions for tests would be lost.

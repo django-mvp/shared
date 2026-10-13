@@ -35,6 +35,14 @@ on:
         description: 'Whether to install Playwright browsers before running tests'
         type: boolean
         default: false
+      parallel:
+        description: 'Whether to run the tests across one pytest-xdist worker per logical core. Set to false for a suite that only passes when run serially'
+        type: boolean
+        default: true
+      timeout-minutes:
+        description: 'Minutes each test job may run before it is cancelled'
+        type: number
+        default: 10
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -44,7 +52,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     name: Test Python ${{ matrix.python-version }}, Django ${{ matrix.django-version }}
-    timeout-minutes: 20
+    timeout-minutes: ${{ inputs.timeout-minutes }}
     strategy:
       matrix:
         python-version: ${{ fromJson(inputs.python-versions) }}
@@ -100,12 +108,23 @@ jobs:
       - name: Run tests
         env:
           IS_COVERAGE_RUN: ${{ matrix.python-version == inputs.coverage-python-version && matrix.django-version == inputs.coverage-django-version }}
+          PARALLEL: ${{ inputs.parallel }}
+          COVERAGE_PACKAGE: ${{ inputs.coverage-package }}
         run: |
-          if [ "$IS_COVERAGE_RUN" = "true" ]; then
-            uv run pytest --cov=${{ inputs.coverage-package }} --cov-report=xml
-          else
-            uv run pytest
+          args=()
+          if [ "$PARALLEL" = "true" ]; then
+            # A repository that does not install pytest-xdist still gets a test
+            # run, serially, rather than a failure on an unknown option.
+            if uv run python -c "import xdist" 2>/dev/null; then
+              args+=(-n logical)
+            else
+              echo "::notice::pytest-xdist is not installed, so the tests run serially."
+            fi
           fi
+          if [ "$IS_COVERAGE_RUN" = "true" ]; then
+            args+=("--cov=${COVERAGE_PACKAGE}" --cov-report=xml)
+          fi
+          uv run pytest "${args[@]}"
 
       - name: Upload coverage to Codecov
         if: matrix.python-version == inputs.coverage-python-version && matrix.django-version == inputs.coverage-django-version
