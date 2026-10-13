@@ -319,6 +319,8 @@ Optional inputs:
 - coverage-python-version (default: 3.13)
 - coverage-django-version (default: 5.2)
 - install-playwright (default: false)
+- parallel (default: true)
+- timeout-minutes (default: 10)
 
 Each matrix leg installs the latest patch release of its Django series over the locked
 environment and fails if the Django it then imports is not that series, so a leg labelled
@@ -327,6 +329,32 @@ environment and fails if the Django it then imports is not that series, so a leg
 The `django-versions` default is every Django release currently supported upstream, and it
 moves with them. Leave it unset to keep testing against that set as it changes. Pass it only
 to test a deliberately different set, for example a project that deploys one release.
+
+The tests run in parallel, with one [pytest-xdist](https://pytest-xdist.readthedocs.io/)
+worker per logical core (`pytest -n logical`), on every leg including the coverage one.
+pytest-xdist comes with the `test` bundle. A repository that does not install it still
+gets a serial run, with a notice in the job log. Under pytest-xdist each worker has its own
+test database and its own live server, so tests have to be independent of each other and
+of the order they run in. Set `parallel: false` for a suite that only passes when run
+serially.
+
+The workflow passes `-n logical` on the command line, which takes precedence over a `-n`
+in the repository's own pytest configuration. It sets nothing else. A repository that
+wants a different distribution mode sets it in its own configuration, for example
+`addopts = ["--dist=loadscope"]`.
+
+Each test job is cancelled after `timeout-minutes`, so a run that hangs fails quickly
+instead of holding a runner. Raise it for a suite that needs longer than ten minutes:
+
+```yaml
+jobs:
+  tests:
+    uses: django-mvp/shared/.github/workflows/tests.yml@v0.6.0
+    secrets: inherit
+    with:
+      coverage-package: mvp
+      timeout-minutes: 20
+```
 
 Example caller workflow:
 
