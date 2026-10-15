@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `templates/pre-commit-config.yaml` that checks docstring sections against each
   signature.
 - `parallel` and `timeout-minutes` inputs on the reusable tests workflow.
+- `build-package` and `security-scan` inputs on the reusable build workflow, both on by
+  default. An application that is deployed rather than installed can skip the package
+  build, and a caller can run the security scan on a schedule instead of on every pull
+  request.
 
 ### Changed
 

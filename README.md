@@ -284,6 +284,15 @@ Optional inputs:
 
 - python-version (default: 3.13)
 - uv-sync-args (default: empty)
+- build-package (default: true)
+- security-scan (default: true)
+
+Set `build-package: false` in an application that is deployed rather than installed. It
+has no wheel or sdist to ship, so building one and checking its metadata proves nothing.
+
+The security scan only reports (ADR 0007), so it does not have to run on every push. To run
+it on a schedule and leave it off pull requests, add a `schedule` trigger to the caller and
+pass `security-scan: ${{ github.event_name != 'pull_request' }}`.
 
 Example caller workflow:
 
