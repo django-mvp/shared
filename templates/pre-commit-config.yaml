@@ -1,6 +1,6 @@
 # Standard pre-commit configuration for django-mvp repositories.
 #
-# Copy to the repo root as `.pre-commit-config.yaml` and replace
+# Copy from main (ADR 0010) to the repo root as `.pre-commit-config.yaml` and replace
 # REPLACE_WITH_PACKAGE_DIR with the repo's package directory (e.g. `licensing`).
 #
 # The Python tools (ruff, mypy, deptry, pydoclint) run as *local* hooks through `uv run`,

@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The files under `templates/` are copied from `main` rather than from a release tag, and a
+  downstream copy is compared against `main`. Workflows and dependency bundles stay
+  tag-pinned (ADR 0010).
 - The reusable tests workflow runs pytest in parallel, with one pytest-xdist worker per
   logical core (`-n logical`), on every matrix leg including the coverage one. A repository without
   pytest-xdist installed still runs serially. A suite that only passes when run serially

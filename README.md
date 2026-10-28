@@ -18,14 +18,15 @@ This repository provides:
 This repository is the single source of the development standard for the django-mvp
 packages and any other repository that adopts it: how each one is built, tested, linted,
 and released, and which tool versions it does that with. One tagged release here versions
-the whole standard.
+the workflows and dependency bundles. The files under `templates/` are copied from `main`
+(ADR 0010), so a change to them needs no release.
 
 It deliberately ships no runtime code — the installable package is an empty shell whose
 only job is carrying dependency bundles. It is not a Django app, not a general-purpose
 actions library, and not a place for repo-specific configuration: anything only one
 downstream repository needs belongs in that repository.
 
-When choices collide: reproducibility beats convenience (pin tags, never `main`), one
+When choices collide: reproducibility beats convenience (pin workflows and bundles to tags, never `main`), one
 standard applied identically in every downstream repository beats per-repo flexibility,
 and automation is only as trusted as the validation gating it.
 
@@ -90,6 +91,9 @@ pip install "mvp-shared[dev,test] @ git+https://github.com/django-mvp/shared.git
 1. Update and release this shared repo.
 2. Bump the tag in each downstream project's `[tool.uv.sources]` and its workflow callers.
 3. Run `uv lock` in each downstream project and commit `uv.lock`.
+
+A change under `templates/` needs none of this. Re-copy the file from `main` into each
+downstream repository.
 
 ### Upgrading past v0.6.0
 
@@ -210,8 +214,8 @@ to the signature rather than the docstring. Tests and migrations are excluded.
 extends: the shared rule selection, the shared ignore list, and the shared format
 settings. Ruff's `extend` option only accepts a local filesystem path, so a package cannot
 point at this file across repositories directly — copy it to the repository root as
-`ruff-base.toml` (re-copy on each change to this file, the same discipline as the
-pre-commit template above), then reference it from the package's own `pyproject.toml`:
+`ruff-base.toml` from `main` (re-copy on each change to this file, the same discipline as the
+pre-commit template above, and with no release needed), then reference it from the package's own `pyproject.toml`:
 
 ```toml
 [tool.ruff]
