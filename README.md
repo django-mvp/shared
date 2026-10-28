@@ -229,7 +229,9 @@ Use `extend-per-file-ignores` for a package's own carve-outs, not `per-file-igno
 adding to it, so the base file's exemptions for tests and migrations would stop applying.
 
 The base selects ruff's pydocstyle rules (`D`) with the Google convention, so every module,
-class, function and method needs a docstring in that style. Two rules are off: `D107`,
+class, function and method needs a docstring in that style. `D401` is selected as well, so a
+summary line is in the imperative ("Return the scheme.", not "Returns the scheme."). The Google
+convention would otherwise turn it off. Two rules are off: `D107`,
 because constructor arguments are documented in the class docstring, and `D106`, for a
 model's or form's inner `Meta` class. Tests, migrations and `conftest.py` files are exempt
 from all `D` rules.

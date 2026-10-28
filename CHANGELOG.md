@@ -10,8 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `templates/ruff-base.toml` selects ruff's pydocstyle rules (`D`) with the Google
-  convention. `D106` and `D107` are ignored, and tests, migrations and `conftest.py` are
-  exempt.
+  convention, plus `D401` so summaries are in the imperative. `D106` and `D107` are
+  ignored, and tests, migrations and `conftest.py` are exempt.
 - `pydoclint` in the `dev` bundle, and a `pydoclint` hook in
   `templates/pre-commit-config.yaml` that checks docstring sections against each
   signature.
