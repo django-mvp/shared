@@ -92,7 +92,7 @@ jobs:
 
       - name: Install uv
         if: ${{ steps.next.outputs.tag_exists_on_head != 'true' }}
-        uses: astral-sh/setup-uv@v10.2.0
+        uses: astral-sh/setup-uv@v10.3.3
 
       - name: Bump pyproject version, commit and tag
         if: ${{ steps.next.outputs.tag_exists_on_head != 'true' }}
