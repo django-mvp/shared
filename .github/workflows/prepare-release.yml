@@ -77,7 +77,7 @@ jobs:
           token: ${{ secrets.RELEASE_TOKEN || secrets.release-token }}
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.2.0
+        uses: astral-sh/setup-uv@v10.3.3
 
       # `uv version` updates the project's own entry in uv.lock along with
       # pyproject.toml. Editing pyproject.toml alone leaves the lockfile out of
