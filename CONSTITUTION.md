@@ -17,7 +17,9 @@ speculation.
 ### Article III — Anti-Abstraction
 No wrapper layers or "future-proofing" indirection without a present, concrete second use.
 For workflows this means: no input added for a hypothetical consumer; an input exists when
-a real downstream repo needs it.
+a real downstream repo needs it. A second use also counts as present when it is in another
+approved specification built in the same batch, such as several features specified
+together from one prototype.
 
 ### Article IV — Integration-First
 The downstream caller is the contract. Changes are designed from the caller's side
@@ -140,4 +142,4 @@ Read at plan and review; applies to every change.
 
 ---
 
-**Version**: 2.1.0 | **Ratified**: 2026-07-21 | **Last Amended**: 2026-10-12
+**Version**: 2.1.1 | **Ratified**: 2026-07-21 | **Last Amended**: 2026-11-11
